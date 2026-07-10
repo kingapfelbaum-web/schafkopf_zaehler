@@ -137,18 +137,59 @@ class SpielService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Wie `datenExportieren()`, aber nur mit den ausgewählten Tischen und
+  /// Spielern. Spieler, die an einem ausgewählten Tisch teilnehmen, werden
+  /// automatisch mit exportiert (sonst wären die Tisch-Daten beim Import
+  /// nicht auflösbar) – auch wenn sie nicht explizit ausgewählt wurden.
+  String datenExportierenGefiltert({
+    required Set<String> tischIds,
+    required Set<String> spielerIds,
+  }) {
+    final ausgewaehlteTische =
+    _tische.where((t) => tischIds.contains(t.id)).toList();
+
+    final spielerIdsGesamt = <String>{
+      ...spielerIds,
+      for (final t in ausgewaehlteTische) ...t.spieler.map((s) => s.id),
+    };
+    final ausgewaehltePlayerinnen =
+    _allePlayerinnen.where((s) => spielerIdsGesamt.contains(s.id)).toList();
+
+    final json = {
+      'allePlayerinnen': ausgewaehltePlayerinnen.map((p) => p.toJson()).toList(),
+      'spielarten': _spielarten.map((s) => s.toJson()).toList(),
+      'standardTarif': _standardTarif.toJson(),
+      'standardAusgewaehlteSpielartenIds':
+      _standardAusgewaehlteSpielartenIds.toList(),
+      'tische': ausgewaehlteTische.map((t) => t.toJson()).toList(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(json);
+  }
+
   // ---------- Spieler ----------
 
   Spieler spielerAnlegen(String name) {
+    final bereinigt = name.trim();
+    final begrenzt =
+    bereinigt.length > 20 ? bereinigt.substring(0, 20) : bereinigt;
     final vorhandener = _allePlayerinnen.firstWhere(
-      (s) => s.name.toLowerCase() == name.toLowerCase(),
-      orElse: () => Spieler(id: _uuid.v4(), name: name),
+          (s) => s.name.toLowerCase() == begrenzt.toLowerCase(),
+      orElse: () => Spieler(id: _uuid.v4(), name: begrenzt),
     );
     if (!_allePlayerinnen.contains(vorhandener)) {
       _allePlayerinnen.add(vorhandener);
       notifyListeners();
     }
     return vorhandener;
+  }
+
+  bool spielerKannGeloeschtWerden(Spieler spieler) => !_tische.any(
+          (t) => t.status == TischStatus.aktiv && t.spieler.contains(spieler));
+
+  void spielerLoeschen(Spieler spieler) {
+    if (!spielerKannGeloeschtWerden(spieler)) return;
+    _allePlayerinnen.remove(spieler);
+    notifyListeners();
   }
 
   // ---------- Spielarten-Katalog ----------
@@ -246,6 +287,12 @@ class SpielService extends ChangeNotifier {
 
   void tischBeenden(Tisch tisch) {
     tisch.beenden();
+    notifyListeners();
+  }
+
+  void tischLoeschen(Tisch tisch) {
+    if (tisch.status != TischStatus.beendet) return;
+    _tische.remove(tisch);
     notifyListeners();
   }
 

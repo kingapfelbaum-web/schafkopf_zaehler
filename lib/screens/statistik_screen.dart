@@ -112,6 +112,31 @@ class _BeendeteSpieleTabState extends State<_BeendeteSpieleTab> {
         spielarten.contains(query);
   }
 
+  void _loeschenBestaetigen(
+      BuildContext context, SpielService service, Tisch tisch) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Spiel löschen?'),
+        content: const Text(
+            'Dieser Tisch inklusive aller Runden wird endgültig gelöscht. Das kann nicht rückgängig gemacht werden.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              service.tischLoeschen(tisch);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final service = context.watch<SpielService>();
@@ -148,7 +173,7 @@ class _BeendeteSpieleTabState extends State<_BeendeteSpieleTab> {
               ? const Center(child: Text('Noch keine beendeten Spiele'))
               : gefiltert.isEmpty
                   ? const Center(child: Text('Keine Treffer'))
-                  : GridView.builder(
+                    : GridView.builder(
                       padding: const EdgeInsets.all(12),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -167,9 +192,11 @@ class _BeendeteSpieleTabState extends State<_BeendeteSpieleTab> {
                                 builder: (_) =>
                                     TischDetailScreen(tisch: tisch)),
                           ),
+                          onDelete: () => _loeschenBestaetigen(
+                              context, service, tisch),
                         );
                       },
-                    ),
+                ),
         ),
       ],
     );

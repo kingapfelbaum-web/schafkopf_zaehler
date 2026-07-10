@@ -24,10 +24,7 @@ class TischDetailScreen extends StatelessWidget {
               style: TextButton.styleFrom(foregroundColor: Colors.orangeAccent),
               icon: const Icon(Icons.flag),
               label: const Text('Beenden'),
-              onPressed: () {
-                service.tischBeenden(tisch);
-                Navigator.of(context).pop();
-              },
+              onPressed: () => _beendenBestaetigen(context, service),
             ),
         ],
       ),
@@ -173,50 +170,93 @@ class TischDetailScreen extends StatelessWidget {
     );
   }
 
-  void _spielerHinzufuegenDialog(BuildContext context, SpielService service) {
-    final controller = TextEditingController();
+  void _beendenBestaetigen(BuildContext context, SpielService service) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Spieler hinzufügen'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: service.allePlayerinnen
-                  .where((s) => !tisch.spieler.contains(s))
-                  .map((s) => ActionChip(
-                        label: Text(s.name),
-                        onPressed: () {
-                          service.spielerZuTischHinzufuegen(tisch, s);
-                          Navigator.of(ctx).pop();
-                        },
-                      ))
-                  .toList(),
-            ),
-          ],
-        ),
+        title: const Text('Spiel beenden?'),
+        content: const Text(
+            'Der Tisch wird als beendet markiert. Es können danach keine weiteren Runden mehr erfasst werden.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Abbrechen')),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.orangeAccent),
             onPressed: () {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              final s = service.spielerAnlegen(name);
-              service.spielerZuTischHinzufuegen(tisch, s);
-              Navigator.of(ctx).pop();
+              service.tischBeenden(tisch);
+              Navigator.of(ctx)
+                ..pop()
+                ..pop();
             },
-            child: const Text('Hinzufügen'),
+            child: const Text('Beenden'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _spielerHinzufuegenDialog(BuildContext context, SpielService service) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Spieler hinzufügen'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: controller,
+                    maxLength: 20,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  if (controller.text.length >= 20)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Maximale Länge von 20 Zeichen erreicht',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    children: service.allePlayerinnen
+                        .where((s) => !tisch.spieler.contains(s))
+                        .map((s) => ActionChip(
+                      label: Text(s.name),
+                      onPressed: () {
+                        service.spielerZuTischHinzufuegen(tisch, s);
+                        Navigator.of(ctx).pop();
+                      },
+                    ))
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isEmpty) return;
+                final s = service.spielerAnlegen(name);
+                service.spielerZuTischHinzufuegen(tisch, s);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Hinzufügen'),
+            ),
+          ],
+        ),
       ),
     );
   }

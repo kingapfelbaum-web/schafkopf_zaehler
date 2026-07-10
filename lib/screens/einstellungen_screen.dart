@@ -9,6 +9,17 @@ import 'package:share_plus/share_plus.dart';
 import '../models/tarif.dart';
 import '../services/spiel_service.dart';
 import 'spiele_bearbeiten_screen.dart';
+import 'spiele_bearbeiten_screen.dart';
+import 'spieler_verwalten_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../models/tarif.dart';
+import '../services/spiel_service.dart';
+import 'export_auswahl_screen.dart';
+import 'spiele_bearbeiten_screen.dart';
+import 'spieler_verwalten_screen.dart';
 
 class EinstellungenScreen extends StatefulWidget {
   const EinstellungenScreen({super.key});
@@ -61,25 +72,6 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Standard-Einstellungen gespeichert')),
-      );
-    }
-  }
-
-  Future<void> _exportieren(SpielService service) async {
-    try {
-      final jsonStr = service.datenExportieren();
-      final verzeichnis = await getTemporaryDirectory();
-      final zeitstempel = DateTime.now().toIso8601String().replaceAll(':', '-');
-      final datei = File('${verzeichnis.path}/schafkopf_export_$zeitstempel.json');
-      await datei.writeAsString(jsonStr);
-      await Share.shareXFiles(
-        [XFile(datei.path)],
-        subject: 'Schafkopf-Datenexport',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export fehlgeschlagen: $e')),
       );
     }
   }
@@ -299,6 +291,26 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
             ),
           ),
           const Divider(height: 40),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Spieler',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.group),
+                label: const Text('Spieler verwalten'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const SpielerVerwaltenScreen()),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 40),
           Text('Daten sichern', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           const Text(
@@ -311,7 +323,9 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.upload),
                   label: const Text('Exportieren'),
-                  onPressed: () => _exportieren(service),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ExportAuswahlScreen()),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

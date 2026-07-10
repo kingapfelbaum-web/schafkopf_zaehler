@@ -72,23 +72,38 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _neuerNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Neuen Spieler anlegen',
-                    border: OutlineInputBorder(),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _neuerNameController,
+                      maxLength: 20,
+                      decoration: const InputDecoration(
+                        labelText: 'Neuen Spieler anlegen',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) => _neuenSpielerAnlegen(service),
+                    ),
                   ),
-                  onSubmitted: (_) => _neuenSpielerAnlegen(service),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _neuenSpielerAnlegen(service),
+                  ),
+                ],
+              ),
+              if (_neuerNameController.text.length >= 20)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Text(
+                    'Maximale Länge von 20 Zeichen erreicht',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                icon: const Icon(Icons.add),
-                onPressed: () => _neuenSpielerAnlegen(service),
-              ),
             ],
           ),
           if (verfuegbar.isNotEmpty) ...[
