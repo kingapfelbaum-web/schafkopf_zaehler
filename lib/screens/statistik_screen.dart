@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/tisch.dart';
 import '../services/spiel_service.dart';
+import '../widgets/tisch_karte.dart';
+import 'spieler_detail_screen.dart';
 import 'tisch_detail_screen.dart';
 
 class StatistikScreen extends StatelessWidget {
@@ -67,6 +70,10 @@ class _SpielerStatistikTab extends StatelessWidget {
                         : null,
               ),
             ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => SpielerDetailScreen(spieler: s.spieler)),
+            ),
           ),
         );
       },
@@ -74,36 +81,97 @@ class _SpielerStatistikTab extends StatelessWidget {
   }
 }
 
-class _BeendeteSpieleTab extends StatelessWidget {
+class _BeendeteSpieleTab extends StatefulWidget {
   const _BeendeteSpieleTab();
+
+  @override
+  State<_BeendeteSpieleTab> createState() => _BeendeteSpieleTabState();
+}
+
+class _BeendeteSpieleTabState extends State<_BeendeteSpieleTab> {
+  final _sucheController = TextEditingController();
+  String _suche = '';
+
+  @override
+  void dispose() {
+    _sucheController.dispose();
+    super.dispose();
+  }
+
+  bool _passtZurSuche(Tisch tisch) {
+    if (_suche.isEmpty) return true;
+    final query = _suche.toLowerCase();
+    final spielerNamen =
+        tisch.spieler.map((s) => s.name.toLowerCase()).join(' ');
+    final datum =
+        '${tisch.erstelltAm.day.toString().padLeft(2, '0')}.${tisch.erstelltAm.month.toString().padLeft(2, '0')}.${tisch.erstelltAm.year}';
+    final spielarten =
+        tisch.spielarten.map((s) => s.name.toLowerCase()).join(' ');
+    return spielerNamen.contains(query) ||
+        datum.contains(query) ||
+        spielarten.contains(query);
+  }
 
   @override
   Widget build(BuildContext context) {
     final service = context.watch<SpielService>();
-    final tische = service.beendeteTische;
+    final alle = service.beendeteTische;
+    final gefiltert = alle.where(_passtZurSuche).toList();
 
-    if (tische.isEmpty) {
-      return const Center(child: Text('Noch keine beendeten Spiele'));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: tische.length,
-      itemBuilder: (context, index) {
-        final tisch = tische[index];
-        return Card(
-          child: ListTile(
-            title: Text(tisch.spieler.map((s) => s.name).join(', ')),
-            subtitle: Text(
-                '${tisch.runden.length} Runden · beendet am '
-                '${tisch.beendetAm?.day}.${tisch.beendetAm?.month}.${tisch.beendetAm?.year}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => TischDetailScreen(tisch: tisch)),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: TextField(
+            controller: _sucheController,
+            decoration: InputDecoration(
+              hintText: 'Nach Spieler, Datum oder Spielart suchen',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              isDense: true,
+              suffixIcon: _suche.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _sucheController.clear();
+                        setState(() => _suche = '');
+                      },
+                    ),
             ),
+            onChanged: (value) => setState(() => _suche = value),
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: alle.isEmpty
+              ? const Center(child: Text('Noch keine beendeten Spiele'))
+              : gefiltert.isEmpty
+                  ? const Center(child: Text('Keine Treffer'))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.95,
+                      ),
+                      itemCount: gefiltert.length,
+                      itemBuilder: (context, index) {
+                        final tisch = gefiltert[index];
+                        return TischKarte(
+                          tisch: tisch,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    TischDetailScreen(tisch: tisch)),
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
 }

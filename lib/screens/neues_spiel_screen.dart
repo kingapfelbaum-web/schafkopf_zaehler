@@ -6,6 +6,7 @@ import '../models/spielart.dart';
 import '../models/tarif.dart';
 import '../services/spiel_service.dart';
 import 'spiele_bearbeiten_screen.dart';
+import 'tisch_detail_screen.dart';
 
 class NeuesSpielScreen extends StatefulWidget {
   const NeuesSpielScreen({super.key});
@@ -149,10 +150,14 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
                 ),
           const Divider(height: 32),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Verfügbare Spiele',
-                  style: Theme.of(context).textTheme.labelLarge),
+              Expanded(
+                child: Text(
+                  'Verfügbare Spiele',
+                  style: Theme.of(context).textTheme.labelLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               TextButton.icon(
                 icon: const Icon(Icons.tune),
                 label: const Text('Spiele bearbeiten'),
@@ -265,8 +270,10 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
     final gewaehlteSpielarten = service.spielarten
         .where((s) => _ausgewaehlteSpielartenIds!.contains(s.id))
         .toList();
-    service.tischAnlegen(_ausgewaehlt,
+    final neuerTisch = service.tischAnlegen(_ausgewaehlt,
         tarif: tarif, spielarten: gewaehlteSpielarten);
-    Navigator.of(context).pop();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => TischDetailScreen(tisch: neuerTisch)),
+    );
   }
 }

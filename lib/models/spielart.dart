@@ -55,7 +55,7 @@ List<Spielart> standardSpielarten() => [
       Spielart(
         id: 'ramsch',
         name: 'Ramsch',
-        einzelspieler: true,
+        einzelspieler: false,
         individuelleGewinner: true,
       ),
     ];

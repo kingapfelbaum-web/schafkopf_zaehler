@@ -21,9 +21,9 @@ class TischDetailScreen extends StatelessWidget {
         actions: [
           if (istAktiv)
             TextButton.icon(
-              icon: const Icon(Icons.flag, color: Colors.white),
-              label:
-                  const Text('Beenden', style: TextStyle(color: Colors.white)),
+              style: TextButton.styleFrom(foregroundColor: Colors.orangeAccent),
+              icon: const Icon(Icons.flag),
+              label: const Text('Beenden'),
               onPressed: () {
                 service.tischBeenden(tisch);
                 Navigator.of(context).pop();
@@ -72,14 +72,22 @@ class TischDetailScreen extends StatelessWidget {
           ),
           if (istAktiv)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Spieler hinzufügen'),
-                  onPressed: () => _spielerHinzufuegenDialog(context, service),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Wrap(
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Spieler hinzufügen'),
+                    onPressed: () =>
+                        _spielerHinzufuegenDialog(context, service),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.tune),
+                    label: const Text('Spiele bearbeiten'),
+                    onPressed: () =>
+                        _spieleBearbeitenDialog(context, service),
+                  ),
+                ],
               ),
             ),
           const Divider(height: 32),
@@ -209,6 +217,66 @@ class TischDetailScreen extends StatelessWidget {
             child: const Text('Hinzufügen'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _spieleBearbeitenDialog(BuildContext context, SpielService service) {
+    // Arbeitskopie der Auswahl, damit erst beim Speichern übernommen wird.
+    final ausgewaehlt = tisch.spielarten.map((s) => s.id).toSet();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Spiele für diesen Tisch'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (service.spielarten.isEmpty)
+                    const Text('Noch keine Spielarten im Katalog')
+                  else
+                    ...service.spielarten.map((s) => CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          value: ausgewaehlt.contains(s.id),
+                          title: Text(s.name),
+                          onChanged: (checked) {
+                            setState(() {
+                              if (checked == true) {
+                                ausgewaehlt.add(s.id);
+                              } else {
+                                ausgewaehlt.remove(s.id);
+                              }
+                            });
+                          },
+                        )),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Abbrechen')),
+            FilledButton(
+              onPressed: ausgewaehlt.isEmpty
+                  ? null
+                  : () {
+                      final neueSpielarten = service.spielarten
+                          .where((s) => ausgewaehlt.contains(s.id))
+                          .toList();
+                      service.spielartenFuerTischAendern(
+                          tisch, neueSpielarten);
+                      Navigator.of(ctx).pop();
+                    },
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
       ),
     );
   }

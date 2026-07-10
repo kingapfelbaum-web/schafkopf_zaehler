@@ -59,4 +59,56 @@ class Tisch {
     status = TischStatus.beendet;
     beendetAm = DateTime.now();
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'erstelltAm': erstelltAm.toIso8601String(),
+        'beendetAm': beendetAm?.toIso8601String(),
+        'status': status.name,
+        'tarif': tarif.toJson(),
+        'spielerIds': spieler.map((s) => s.id).toList(),
+        'spielartenIds': spielarten.map((s) => s.id).toList(),
+        'runden': runden.map((r) => r.toJson()).toList(),
+      };
+
+  /// Löst spielerIds/spielartenIds gegen die übergebenen globalen Listen auf.
+  /// Ist eine ID dort nicht (mehr) vorhanden (z.B. gelöschte Spielart),
+  /// wird ein minimaler Platzhalter erzeugt, damit alte Runden lesbar bleiben.
+  factory Tisch.fromJson(
+    Map<String, dynamic> json, {
+    required List<Spieler> allePlayerinnen,
+    required List<Spielart> alleSpielarten,
+  }) {
+    final spielerIds = List<String>.from(json['spielerIds'] as List);
+    final spieler = spielerIds
+        .map((id) => allePlayerinnen.firstWhere(
+              (s) => s.id == id,
+              orElse: () => Spieler(id: id, name: '(gelöschter Spieler)'),
+            ))
+        .toList();
+
+    final spielartenIds = List<String>.from(json['spielartenIds'] as List);
+    final spielarten = spielartenIds
+        .map((id) => alleSpielarten.firstWhere(
+              (s) => s.id == id,
+              orElse: () => Spielart(
+                  id: id, name: '(gelöschte Spielart)', einzelspieler: false),
+            ))
+        .toList();
+
+    return Tisch(
+      id: json['id'] as String,
+      erstelltAm: DateTime.parse(json['erstelltAm'] as String),
+      beendetAm: json['beendetAm'] == null
+          ? null
+          : DateTime.parse(json['beendetAm'] as String),
+      status: TischStatus.values.byName(json['status'] as String),
+      tarif: Tarif.fromJson(json['tarif'] as Map<String, dynamic>),
+      spieler: spieler,
+      spielarten: spielarten,
+      runden: (json['runden'] as List)
+          .map((r) => Runde.fromJson(r as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }

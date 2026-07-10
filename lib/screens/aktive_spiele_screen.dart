@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/spiel_service.dart';
-import 'neues_spiel_screen.dart';
+import '../widgets/tisch_karte.dart';
 import 'tisch_detail_screen.dart';
 
 class AktiveSpieleScreen extends StatelessWidget {
@@ -15,36 +15,31 @@ class AktiveSpieleScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Aktive Spiele')),
+      // Der "Neues Spiel"-Button ist jetzt Teil der bottomNavigationBar,
+      // daher braucht der Inhalt kein zusätzliches Bottom-Padding mehr.
       body: tische.isEmpty
           ? const Center(child: Text('Noch kein aktives Spiel'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(8),
+          : GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.95,
+              ),
               itemCount: tische.length,
               itemBuilder: (context, index) {
                 final tisch = tische[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(
-                        '${tisch.spieler.map((s) => s.name).join(', ')}'),
-                    subtitle: Text(
-                        '${tisch.runden.length} Runden · seit ${tisch.erstelltAm.day}.${tisch.erstelltAm.month}.'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TischDetailScreen(tisch: tisch),
-                      ),
+                return TischKarte(
+                  tisch: tisch,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TischDetailScreen(tisch: tisch),
                     ),
                   ),
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Neues Spiel'),
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const NeuesSpielScreen()),
-        ),
-      ),
     );
   }
 }

@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/tarif.dart';
 import '../services/spiel_service.dart';
@@ -60,6 +65,139 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
     }
   }
 
+  Future<void> _exportieren(SpielService service) async {
+    try {
+      final jsonStr = service.datenExportieren();
+      final verzeichnis = await getTemporaryDirectory();
+      final zeitstempel = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final datei = File('${verzeichnis.path}/schafkopf_export_$zeitstempel.json');
+      await datei.writeAsString(jsonStr);
+      await Share.shareXFiles(
+        [XFile(datei.path)],
+        subject: 'Schafkopf-Datenexport',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export fehlgeschlagen: $e')),
+      );
+    }
+  }
+
+  Future<void> _importieren(SpielService service) async {
+    final controller = TextEditingController();
+
+    // Falls in der Zwischenablage bereits JSON liegt (z.B. weil der Nutzer
+    // die exportierte Datei zuvor geöffnet und den Inhalt kopiert hat),
+    // gleich vorbefüllen.
+    final zwischenablage = await Clipboard.getData(Clipboard.kTextPlain);
+    if (zwischenablage?.text != null &&
+        zwischenablage!.text!.trim().startsWith('{')) {
+      controller.text = zwischenablage.text!;
+    }
+
+    if (!mounted) return;
+    final inhalt = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Daten importieren'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Öffne die exportierte .json-Datei (z.B. über deine Dateien-App), '
+                      'kopiere ihren gesamten Inhalt und füge ihn hier ein.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '{ "allePlayerinnen": [...], ... }',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.paste),
+                  label: const Text('Aus Zwischenablage einfügen'),
+                  onPressed: () async {
+                    final daten = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (daten?.text != null) {
+                      controller.text = daten!.text!;
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('Weiter'),
+          ),
+        ],
+      ),
+    );
+
+    if (inhalt == null || inhalt.trim().isEmpty) return;
+
+    if (!mounted) return;
+    final bestaetigt = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Daten importieren?'),
+        content: const Text(
+            'Alle aktuellen Spieler, Tische und Einstellungen werden durch die eingefügten Daten ersetzt. Das kann nicht rückgängig gemacht werden.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Ersetzen'),
+          ),
+        ],
+      ),
+    );
+    if (bestaetigt != true) return;
+
+    try {
+      await service.datenImportieren(inhalt);
+      if (!mounted) return;
+      // Eingabefelder mit den importierten Standardwerten aktualisieren.
+      final tarif = service.standardTarif;
+      setState(() {
+        _sauspielController.text = tarif.sauspielPreis.toStringAsFixed(2);
+        _soloController.text = tarif.soloPreis.toStringAsFixed(2);
+        _aufpreisController.text = tarif.aufpreis.toStringAsFixed(2);
+        _ausgewaehlteIds = Set.of(service.standardAusgewaehlteSpielartenIds);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Daten erfolgreich importiert')),
+      );
+    } on FormatException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Eingefügter Text ist kein gültiges Backup')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import fehlgeschlagen: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final service = context.watch<SpielService>();
@@ -109,10 +247,14 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
           ),
           const Divider(height: 40),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Standardmäßig ausgewählte Spiele',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Expanded(
+                child: Text(
+                  'Standardmäßig ausgewählte Spiele',
+                  style: Theme.of(context).textTheme.titleMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               TextButton.icon(
                 icon: const Icon(Icons.tune),
                 label: const Text('Spiele bearbeiten'),
@@ -155,6 +297,32 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
               onPressed: _speichern,
               child: const Text('Speichern'),
             ),
+          ),
+          const Divider(height: 40),
+          Text('Daten sichern', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          const Text(
+              'Sichere alle Spieler, Tische, Runden und Einstellungen als Datei oder stelle einen früheren Stand wieder her.',
+              style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.upload),
+                  label: const Text('Exportieren'),
+                  onPressed: () => _exportieren(service),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.download),
+                  label: const Text('Importieren'),
+                  onPressed: () => _importieren(service),
+                ),
+              ),
+            ],
           ),
         ],
       ),
