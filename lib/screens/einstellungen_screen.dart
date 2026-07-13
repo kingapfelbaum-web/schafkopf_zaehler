@@ -195,7 +195,16 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
     final service = context.watch<SpielService>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Einstellungen')),
+      appBar: AppBar(
+          title: const Text('Einstellungen'),
+          actions: [
+          FilledButton.tonal(
+            onPressed: _speichern,
+            child: const Text('Speichern'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -282,14 +291,6 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
                     });
                   },
                 )),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _speichern,
-              child: const Text('Speichern'),
-            ),
-          ),
           const Divider(height: 40),
           Row(
             children: [

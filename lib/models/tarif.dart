@@ -7,7 +7,7 @@ class Tarif {
   Tarif({
     this.sauspielPreis = 0.20,
     this.soloPreis = 0.50,
-    this.aufpreis = 0.20,
+    this.aufpreis = 0.10,
   });
 
   /// Grundpreis abhängig davon, ob die Spielart ein Einzelspieler-Spiel
