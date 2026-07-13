@@ -1,25 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/tarif.dart';
 import '../services/spiel_service.dart';
-import 'spiele_bearbeiten_screen.dart';
 import 'spiele_bearbeiten_screen.dart';
 import 'spieler_verwalten_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
-import '../models/tarif.dart';
-import '../services/spiel_service.dart';
 import 'export_auswahl_screen.dart';
-import 'spiele_bearbeiten_screen.dart';
-import 'spieler_verwalten_screen.dart';
 
 class EinstellungenScreen extends StatefulWidget {
   const EinstellungenScreen({super.key});
@@ -199,6 +187,10 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
           title: const Text('Einstellungen'),
           actions: [
           FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green.shade700,
+              foregroundColor: Colors.white,
+            ),
             onPressed: _speichern,
             child: const Text('Speichern'),
           ),
