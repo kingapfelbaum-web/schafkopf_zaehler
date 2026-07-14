@@ -256,17 +256,27 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _ausgewaehlt.length < 4 ||
-                      _ausgewaehlteSpielartenIds!.isEmpty
-                  ? null
-                  : () => _erstellen(service),
-              child: const Text('Tisch erstellen'),
-            ),
-          ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  label: const Text('Tisch Erstellen'),
+                  onPressed: _ausgewaehlt.length < 4 ||
+                      _ausgewaehlteSpielartenIds!.isEmpty
+                      ? null
+                      : () => _erstellen(service),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

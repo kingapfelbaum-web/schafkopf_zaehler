@@ -10,13 +10,12 @@ class SpieleBearbeitenScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final service = context.watch<SpielService>();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Spiele bearbeiten')),
       body: service.spielarten.isEmpty
           ? const Center(child: Text('Noch keine Spielarten angelegt'))
           : ListView.builder(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.only(left: 8, right: 8, top: 8, bottom: MediaQuery.of(context).padding.bottom+80),
               itemCount: service.spielarten.length,
               itemBuilder: (context, index) {
                 final s = service.spielarten[index];

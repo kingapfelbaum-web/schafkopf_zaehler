@@ -63,76 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _index = 0;
   UpdateInfo? _updateInfo;
 
-  static const _screens = [
-    AktiveSpieleScreen(),
-    StatistikScreen(),
-    EinstellungenScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _updateInfo != null
-          ? AppBar(
-        title: null,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton.icon(
-              onPressed: () => _zeigeUpdateDialog(_updateInfo!),
-              icon: const Icon(Icons.system_update,
-                  color: Colors.orange, size: 18),
-              label: const Text('Update',
-                  style: TextStyle(
-                      color: Colors.orange, fontSize: 12)),
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.orange.shade50,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
-              ),
-            ),
-          ),
-        ],
-      )
-          : null,
-      body: _screens[_index],
-      bottomNavigationBar: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_index == 0)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('Neues Spiel'),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const NeuesSpielScreen()),
-                    ),
-                  ),
-                ),
-              ),
-            NavigationBar(
-              selectedIndex: _index,
-              onDestinationSelected: (i) => setState(() => _index = i),
-              destinations: const [
-                NavigationDestination(
-                    icon: Icon(Icons.sports_esports), label: 'Aktive Spiele'),
-                NavigationDestination(
-                    icon: Icon(Icons.bar_chart), label: 'Statistik'),
-                NavigationDestination(
-                    icon: Icon(Icons.settings), label: 'Einstellungen'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -204,6 +134,56 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _index,
+        children: [
+          AktiveSpieleScreen(updateInfo: _updateInfo, onUpdateTap: () {
+            if (_updateInfo != null) _zeigeUpdateDialog(_updateInfo!);
+          }),
+          const StatistikScreen(),
+          const EinstellungenScreen()
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_index == 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Neues Spiel'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const NeuesSpielScreen()),
+                    ),
+                  ),
+                ),
+              ),
+            NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (i) => setState(() => _index = i),
+              destinations: const [
+                NavigationDestination(
+                    icon: Icon(Icons.sports_esports), label: 'Aktive Spiele'),
+                NavigationDestination(
+                    icon: Icon(Icons.bar_chart), label: 'Statistik'),
+                NavigationDestination(
+                    icon: Icon(Icons.settings), label: 'Einstellungen'),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

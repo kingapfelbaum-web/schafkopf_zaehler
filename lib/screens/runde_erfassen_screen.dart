@@ -243,6 +243,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
             onPressed: _auswahlGueltig ? _speichern : null,
             child: const Text('Speichern'),
           ),
+          Divider(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
