@@ -37,6 +37,7 @@ class SchafkopfApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.green.shade800),
           useMaterial3: true,
+          appBarTheme: const AppBarTheme(scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent),
         ),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
@@ -44,6 +45,7 @@ class SchafkopfApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
           useMaterial3: true,
+          appBarTheme: const AppBarTheme(scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent),
         ),
         themeMode: ThemeMode.system,
         home: const HomeScreen(),

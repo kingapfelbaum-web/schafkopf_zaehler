@@ -34,10 +34,45 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
   @override
   void initState() {
     super.initState();
-    // Standardmäßig die ersten 4 Spieler der Tisch-Reihenfolge aktiv setzen.
-    _aktiveSpielerIds =
-        widget.tisch.spieler.take(4).map((s) => s.id).toSet();
+    _aktiveSpielerIds = _naechsteAktiveSpieler();
     _spielart = widget.tisch.spielarten.first;
+  }
+
+  /// Ermittelt die Standard-Auswahl der aktiven Spieler für die neue Runde:
+  /// Gab es noch keine Runde, werden die ersten 4 Spieler der Sitzordnung
+  /// genommen. Ansonsten rückt jeder Sitzplatz gegenüber der letzten Runde
+  /// um genau eine Position weiter (reihum, entsprechend der Sitzordnung
+  /// des Tisches) – wer zuletzt ausgesetzt hat, spielt so als erstes wieder mit.
+  Set<String> _naechsteAktiveSpieler() {
+    final spieler = widget.tisch.spieler;
+    final n = spieler.length;
+
+    if (widget.tisch.runden.isEmpty || n <= 4) {
+      return spieler.take(4).map((s) => s.id).toSet();
+    }
+
+    final letzteRunde = widget.tisch.runden.last;
+    final letzteAktiveIds = {
+      ...letzteRunde.spielerParteiIds,
+      ...letzteRunde.gegenParteiIds,
+    };
+
+    final letzteAktiveIndizes = letzteAktiveIds
+        .map((id) => spieler.indexWhere((s) => s.id == id))
+        .where((index) => index != -1)
+        .toList();
+
+    // Nur sinnvoll rotierbar, wenn die Vorrunde exakt 4 (noch am Tisch
+    // sitzende) aktive Spieler hatte – sonst auf die ersten 4 zurückfallen.
+    if (letzteAktiveIndizes.length != 4) {
+      return spieler.take(4).map((s) => s.id).toSet();
+    }
+
+    // Jede Sitzposition rückt um genau einen Platz weiter (reihum).
+    final neueIndizes =
+    letzteAktiveIndizes.map((index) => (index + 1) % n).toSet();
+
+    return neueIndizes.map((index) => spieler[index].id).toSet();
   }
 
   List<Spieler> get _aktiveSpieler => widget.tisch.spieler
@@ -238,13 +273,24 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _auswahlGueltig ? _speichern : null,
-            child: const Text('Speichern'),
-          ),
-          Divider(height: MediaQuery.of(context).padding.bottom),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _auswahlGueltig ? _speichern : null,
+                  child: const Text('Speichern'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

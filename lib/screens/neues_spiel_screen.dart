@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/spieler.dart';
-import '../models/spielart.dart';
 import '../models/tarif.dart';
 import '../services/spiel_service.dart';
 import 'spiele_bearbeiten_screen.dart';
@@ -34,6 +33,12 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
   }
 
   void _spielerHinzufuegen(Spieler s) {
+    if (_ausgewaehlt.length >= 7) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximal 7 Spieler pro Tisch möglich')),
+      );
+      return;
+    }
     setState(() {
       if (!_ausgewaehlt.contains(s)) _ausgewaehlt.add(s);
     });
@@ -119,7 +124,8 @@ class _NeuesSpielScreenState extends State<NeuesSpielScreen> {
                   .map((s) => ActionChip(
                         label: Text(s.name),
                         avatar: const Icon(Icons.add, size: 16),
-                        onPressed: () => _spielerHinzufuegen(s),
+                        onPressed:
+                         _ausgewaehlt.length >= 7 ? null : () => _spielerHinzufuegen(s),
                       ))
                   .toList(),
             ),

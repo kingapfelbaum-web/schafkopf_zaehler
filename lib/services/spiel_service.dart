@@ -261,6 +261,12 @@ class SpielService extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool spielerVonTischEntfernen(Tisch tisch, Spieler spieler) {
+    final entfernt = tisch.spielerEntfernen(spieler);
+    if (entfernt) notifyListeners();
+    return entfernt;
+  }
+
   void spielerReihenfolgeAendern(Tisch tisch, int oldIndex, int newIndex) {
     tisch.spielerVerschieben(oldIndex, newIndex);
     notifyListeners();

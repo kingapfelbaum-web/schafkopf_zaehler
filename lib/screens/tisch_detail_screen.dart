@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/spieler.dart';
 import '../models/tisch.dart';
 import '../services/spiel_service.dart';
 import 'runde_erfassen_screen.dart';
 
-class TischDetailScreen extends StatelessWidget {
+class TischDetailScreen extends StatefulWidget {
   final Tisch tisch;
   const TischDetailScreen({super.key, required this.tisch});
+
+  @override
+  State<TischDetailScreen> createState() => _TischDetailScreenState();
+}
+
+class _TischDetailScreenState extends State<TischDetailScreen> {
+  bool _spielerEingeklappt = false;
+
+  Tisch get tisch => widget.tisch;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +28,9 @@ class TischDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Tisch vom ${_formatDatum(tisch.erstelltAm)}'),
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        notificationPredicate: (notification) => false,
         actions: [
           if (istAktiv)
             FilledButton.icon(
@@ -34,62 +47,90 @@ class TischDetailScreen extends StatelessWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Spieler (Reihenfolge)',
-                  style: Theme.of(context).textTheme.labelLarge),
-            ),
-          ),
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: tisch.spieler.length,
-            onReorder: istAktiv
-                ? (oldIndex, newIndex) => service.spielerReihenfolgeAendern(
-                    tisch, oldIndex, newIndex)
-                : (_, __) {},
-            itemBuilder: (context, index) {
-              final s = tisch.spieler[index];
-              final punkte = punktestand[s.id] ?? 0;
-              return ListTile(
-                key: ValueKey(s.id),
-                leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text(s.name),
-                trailing: Text(
-                  '${punkte.toStringAsFixed(2)} €',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: punkte > 0
-                        ? Colors.green
-                        : punkte < 0
-                            ? Colors.red
-                            : null,
-                  ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text('Spieler (Reihenfolge)',
+                      style: Theme.of(context).textTheme.labelLarge),
                 ),
-              );
-            },
-          ),
-          if (istAktiv)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Wrap(
-                children: [
-                  TextButton.icon(
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Spieler hinzufügen'),
-                    onPressed: () =>
-                        _spielerHinzufuegenDialog(context, service),
-                  ),
-                  TextButton.icon(
-                    icon: const Icon(Icons.tune),
-                    label: const Text('Spiele bearbeiten'),
-                    onPressed: () =>
-                        _spieleBearbeitenDialog(context, service),
-                  ),
-                ],
-              ),
+                IconButton(
+                  icon: Icon(_spielerEingeklappt
+                      ? Icons.expand_more
+                      : Icons.expand_less),
+                  tooltip: _spielerEingeklappt ? 'Ausklappen' : 'Einklappen',
+                  onPressed: () =>
+                      setState(() => _spielerEingeklappt = !_spielerEingeklappt),
+                ),
+              ],
             ),
+          ),
+          if (!_spielerEingeklappt) ...[
+            ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: tisch.spieler.length,
+              onReorder: istAktiv
+                  ? (oldIndex, newIndex) => service.spielerReihenfolgeAendern(
+                  tisch, oldIndex, newIndex)
+                  : (_, __) {},
+              itemBuilder: (context, index) {
+                final s = tisch.spieler[index];
+                final punkte = punktestand[s.id] ?? 0;
+                final kannEntferntWerden = istAktiv &&
+                    !tisch.spielerHatRunden(s) &&
+                    tisch.spieler.length > 4;
+                return ListTile(
+                  key: ValueKey(s.id),
+                  leading: CircleAvatar(child: Text('${index + 1}')),
+                  title: Text(s.name),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${punkte.toStringAsFixed(2)} €',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: punkte > 0
+                              ? Colors.green
+                              : punkte < 0
+                              ? Colors.red
+                              : null,
+                        ),
+                      ),
+                      if (kannEntferntWerden)
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          color: Colors.grey.shade600,
+                          onPressed: () => _spielerEntfernenBestaetigen(
+                              context, service, s),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            if (istAktiv)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Wrap(
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Spieler hinzufügen'),
+                      onPressed: () =>
+                          _spielerHinzufuegenDialog(context, service),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.tune),
+                      label: const Text('Spiele bearbeiten'),
+                      onPressed: () =>
+                          _spieleBearbeitenDialog(context, service),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           const Divider(height: 32),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -186,7 +227,7 @@ class TischDetailScreen extends StatelessWidget {
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Abbrechen')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.orangeAccent),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Theme.of(context).colorScheme.onPrimary),
             onPressed: () {
               service.tischBeenden(tisch);
               Navigator.of(ctx)
@@ -200,7 +241,47 @@ class TischDetailScreen extends StatelessWidget {
     );
   }
 
+  void _spielerEntfernenBestaetigen(
+      BuildContext context, SpielService service, Spieler spieler) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Spieler entfernen?'),
+        content: Text(
+            '"${spieler.name}" hat an diesem Tisch noch an keiner Runde teilgenommen und wird entfernt.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
+            onPressed: () {
+              service.spielerVonTischEntfernen(tisch, spieler);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Entfernen'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _spielerHinzufuegenDialog(BuildContext context, SpielService service) {
+    if (tisch.spieler.length >= 7) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Maximum erreicht'),
+          content: const Text('Ein Tisch kann maximal 7 Spieler haben.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK')),
+          ],
+        ),
+      );
+      return;
+    }
     final controller = TextEditingController();
     showDialog(
       context: context,

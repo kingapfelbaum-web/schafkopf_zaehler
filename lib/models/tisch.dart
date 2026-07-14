@@ -49,6 +49,14 @@ class Tisch {
     }
   }
 
+  bool spielerHatRunden(Spieler s) => runden.any((r) =>
+  r.spielerParteiIds.contains(s.id) || r.gegenParteiIds.contains(s.id));
+
+  bool spielerEntfernen(Spieler s) {
+    if (spielerHatRunden(s)) return false;
+    return spieler.remove(s);
+  }
+
   void spielerVerschieben(int oldIndex, int newIndex) {
     if (newIndex > oldIndex) newIndex -= 1;
     final s = spieler.removeAt(oldIndex);
