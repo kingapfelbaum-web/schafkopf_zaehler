@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'services/spiel_service.dart';
@@ -13,7 +14,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final service = SpielService();
   await service.ladeDaten();
-  runApp(SchafkopfApp(service: service));
+  SystemChrome.setPreferredOrientations(
+    [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ],
+  ).then((val) {
+    runApp(SchafkopfApp(service: service));
+  });
 }
 
 class SchafkopfApp extends StatelessWidget {
