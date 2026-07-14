@@ -129,8 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.system_update),
             label: const Text('Installieren'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ],

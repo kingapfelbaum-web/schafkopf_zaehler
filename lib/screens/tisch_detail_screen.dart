@@ -156,6 +156,7 @@ class TischDetailScreen extends StatelessWidget {
                     },
                   ),
           ),
+          Divider(height: MediaQuery.of(context).padding.bottom),
         ],
       ),
       floatingActionButton: istAktiv
