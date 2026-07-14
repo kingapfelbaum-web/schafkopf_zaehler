@@ -30,6 +30,14 @@ class SchafkopfApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.green.shade800),
           useMaterial3: true,
         ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.tealAccent.shade700,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        themeMode: ThemeMode.system,
         home: const HomeScreen(),
       ),
     );

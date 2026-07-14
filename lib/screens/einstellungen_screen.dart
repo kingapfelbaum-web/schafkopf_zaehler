@@ -188,8 +188,8 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
           actions: [
           FilledButton.tonal(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             onPressed: _speichern,
             child: const Text('Speichern'),

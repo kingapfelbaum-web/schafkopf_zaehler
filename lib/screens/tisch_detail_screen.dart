@@ -20,11 +20,14 @@ class TischDetailScreen extends StatelessWidget {
         title: Text('Tisch vom ${_formatDatum(tisch.erstelltAm)}'),
         actions: [
           if (istAktiv)
-            TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: Colors.orangeAccent),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              ),
+              onPressed: () => _beendenBestaetigen(context, service),
               icon: const Icon(Icons.flag),
               label: const Text('Beenden'),
-              onPressed: () => _beendenBestaetigen(context, service),
             ),
         ],
       ),

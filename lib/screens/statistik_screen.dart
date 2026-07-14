@@ -13,19 +13,21 @@ class StatistikScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Statistik'),
           bottom: const TabBar(tabs: [
             Tab(text: 'Spieler'),
             Tab(text: 'Beendete Spiele'),
+            Tab(text: 'Spielarten'),
           ]),
         ),
         body: const TabBarView(
           children: [
             _SpielerStatistikTab(),
             _BeendeteSpieleTab(),
+            _SpielartenStatistikTab(),
           ],
         ),
       ),
@@ -199,6 +201,38 @@ class _BeendeteSpieleTabState extends State<_BeendeteSpieleTab> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _SpielartenStatistikTab extends StatelessWidget {
+  const _SpielartenStatistikTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.watch<SpielService>();
+    final stats = service.statistikProSpielart;
+
+    if (stats.isEmpty) {
+      return const Center(child: Text('Noch keine Daten'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: stats.length,
+      itemBuilder: (context, index) {
+        final s = stats[index];
+        return Card(
+          child: ListTile(
+            title: Text(s.name),
+            subtitle: Text('${s.anzahlRunden} Runden'),
+            trailing: Text(
+              '${(s.gewinnquote * 100).toStringAsFixed(0)}% Siegquote',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
     );
   }
 }

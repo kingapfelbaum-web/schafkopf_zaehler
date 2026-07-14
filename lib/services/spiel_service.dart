@@ -332,6 +332,27 @@ class SpielService extends ChangeNotifier {
     return {for (final s in stats.values) s.spieler: s};
   }
 
+  List<SpielartStatistik> get statistikProSpielart {
+    final Map<String, SpielartStatistik> stats = {};
+
+    for (final tisch in _tische) {
+      for (final runde in tisch.runden) {
+        final s = stats.putIfAbsent(
+          runde.spielartName,
+              () => SpielartStatistik(name: runde.spielartName),
+        );
+        s.anzahlRunden += 1;
+        if (!runde.unentschieden && runde.gewonnen) {
+          s.gewonneneRunden += 1;
+        }
+      }
+    }
+
+    final liste = stats.values.toList()
+      ..sort((a, b) => b.anzahlRunden.compareTo(a.anzahlRunden));
+    return liste;
+  }
+
   /// Detaillierte Statistik für einen einzelnen Spieler, u.a. aufgeschlüsselt
   /// nach Spielart, sowie die Liste aller Tische, an denen er teilnahm.
   SpielerDetailStatistik detailStatistikFuer(Spieler spieler) {
