@@ -1,7 +1,7 @@
 name: schafkopf_app
 description: App zum Mitschreiben von Schafkopf-Spielen
 publish_to: 'none'
-version: 1.0.7+1
+version: 1.0.8+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -17,6 +17,7 @@ dependencies:
   http: ^1.2.0
   shared_preferences: ^2.2.3
   share_plus: '>=7.2.2 <12.0.0'
+  font_awesome_flutter: ^11.0.0
 
 dev_dependencies:
   flutter_launcher_icons: "^0.14.1"

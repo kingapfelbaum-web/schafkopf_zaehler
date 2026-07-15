@@ -89,20 +89,17 @@ class Runde {
         punkte[spielerId] = 0;
       }
     } else {
-      final numGewinner =
-          gewonnen ? spielerParteiIds.length : gegenParteiIds.length;
-      final numVerlierer =
-          gewonnen ? gegenParteiIds.length : spielerParteiIds.length;
-      // Bei korrekten Eingaben ist dieses Verhältnis immer ganzzahlig
-      // (z.B. 3 bei 1 vs 3, 1 bei 2 vs 2).
-      final faktorGewinner = numVerlierer / numGewinner;
+      final numDeclarers = spielerParteiIds.length;
+      final numOpponents = gegenParteiIds.length;
+      final faktorSpielerpartei =
+      numDeclarers == 0 ? 0 : numOpponents / numDeclarers;
 
       for (final spielerId in gegenParteiIds) {
-        punkte[spielerId] = gewonnen ? -spielwert : spielwert * faktorGewinner;
+        punkte[spielerId] = gewonnen ? -spielwert : spielwert;
       }
       for (final spielerId in spielerParteiIds) {
         punkte[spielerId] =
-            gewonnen ? spielwert * faktorGewinner : -spielwert;
+        gewonnen ? spielwert * faktorSpielerpartei : -spielwert * faktorSpielerpartei;
       }
     }
 

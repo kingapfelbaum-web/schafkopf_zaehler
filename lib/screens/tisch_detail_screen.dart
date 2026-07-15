@@ -178,8 +178,8 @@ class _TischDetailScreenState extends State<TischDetailScreen> {
                         ),
                         title: Text(titel),
                         subtitle: Text(details.isEmpty
-                            ? '${runde.spielwert.toStringAsFixed(2)} € je Verlierer'
-                            : '$details · ${runde.spielwert.toStringAsFixed(2)} € je Verlierer'),
+                            ? '${runde.spielwert.toStringAsFixed(2)} €'
+                            : '$details · ${runde.spielwert.toStringAsFixed(2)} €'),
                         trailing: Text(
                           runde.unentschieden
                               ? 'unentschieden'

@@ -76,39 +76,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
   /// genommen. Ansonsten rückt jeder Sitzplatz gegenüber der letzten Runde
   /// um genau eine Position weiter (reihum, entsprechend der Sitzordnung
   /// des Tisches) – wer zuletzt ausgesetzt hat, spielt so als erstes wieder mit.
-  Set<String> _naechsteAktiveSpieler() {
-    final spieler = widget.tisch.spieler;
-    final n = spieler.length;
-
-    if (widget.tisch.runden.isEmpty || n <= 4) {
-      return spieler.take(4).map((s) => s.id).toSet();
-    }
-
-    final letzteRunde = widget.tisch.runden.last;
-    final letzteAktiveIds = {
-      ...letzteRunde.spielerParteiIds,
-      ...letzteRunde.gegenParteiIds,
-    };
-
-    final letzteAktiveIndizes = letzteAktiveIds
-        .map((id) => spieler.indexWhere((s) => s.id == id))
-        .where((index) => index != -1)
-        .toList();
-
-    // Nur sinnvoll rotierbar, wenn die Vorrunde exakt 4 (noch am Tisch
-    // sitzende) aktive Spieler hatte – sonst auf die ersten 4 zurückfallen.
-    if (letzteAktiveIndizes.length != 4) {
-      return spieler.take(4).map((s) => s.id).toSet();
-    }
-
-    // Jede Sitzposition rückt um genau einen Platz weiter (reihum).
-    final neueIndizes =
-    letzteAktiveIndizes.map((index) => (index + 1) % n).toSet();
-
-    return neueIndizes.map((index) => spieler[index].id).toSet();
-  }
-
-  List<Spieler> get _aktiveSpieler => widget.tisch.spieler
+    List<Spieler> get _aktiveSpieler => widget.tisch.spieler
       .where((s) => _aktiveSpielerIds.contains(s.id))
       .toList();
 
@@ -296,11 +264,13 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
                 children: [
                   Text(_unentschieden
                       ? 'Unentschieden'
-                      : 'Spielwert (je Verlierer)'),
+                      : 'Spielwert'),
                   Text(
                     _unentschieden
                         ? '0,00 €'
-                        : '${_vorschauSpielwert.toStringAsFixed(2)} €',
+                        : (_individuell && _spielerParteiIds.length == 1) || _maxSpielerpartei <2
+                            ? '${_vorschauSpielwert.toStringAsFixed(2)} €/ ${(_vorschauSpielwert*3).toStringAsFixed(2)} €'
+                            : '${_vorschauSpielwert.toStringAsFixed(2)} €',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 18),
                   ),

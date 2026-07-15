@@ -163,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(Icons.play_arrow),
                     label: const Text('Neues Spiel'),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -177,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onDestinationSelected: (i) => setState(() => _index = i),
               destinations: const [
                 NavigationDestination(
-                    icon: Icon(Icons.sports_esports), label: 'Aktive Spiele'),
+                    icon: Icon(Icons.play_arrow), label: 'Aktive Spiele'),
                 NavigationDestination(
                     icon: Icon(Icons.bar_chart), label: 'Statistik'),
                 NavigationDestination(
