@@ -10,9 +10,14 @@ import '../services/spiel_service.dart';
 class RundeErfassenScreen extends StatefulWidget {
   final Tisch tisch;
   final SpielService service;
+  final Runde? bearbeiteRunde;
 
-  const RundeErfassenScreen(
-      {super.key, required this.tisch, required this.service});
+  const RundeErfassenScreen({
+    super.key,
+    required this.tisch,
+    required this.service,
+    this.bearbeiteRunde,
+  });
 
   @override
   State<RundeErfassenScreen> createState() => _RundeErfassenScreenState();
@@ -34,8 +39,36 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
   @override
   void initState() {
     super.initState();
-    _aktiveSpielerIds = _naechsteAktiveSpieler();
-    _spielart = widget.tisch.spielarten.first;
+    final bearbeitet = widget.bearbeiteRunde;
+
+    if (bearbeitet != null) {
+      _aktiveSpielerIds = {
+        ...bearbeitet.spielerParteiIds,
+        ...bearbeitet.gegenParteiIds,
+      };
+      // Die Spielart wird über den Namen im aktuellen Katalog gesucht (Snapshot-
+      // Prinzip, siehe Runde-Modell). Ist sie nicht mehr vorhanden (gelöscht),
+      // wird ein Platzhalter mit den ursprünglichen Eckdaten rekonstruiert.
+      _spielart = widget.tisch.spielarten.firstWhere(
+            (s) => s.name == bearbeitet.spielartName,
+        orElse: () => Spielart(
+          id: 'geloescht',
+          name: bearbeitet.spielartName,
+          einzelspieler: bearbeitet.spielartEinzelspieler,
+          individuelleGewinner: bearbeitet.unentschieden,
+        ),
+      );
+      _spielerParteiIds.addAll(bearbeitet.spielerParteiIds);
+      _anzahlLaufende = bearbeitet.anzahlLaufende;
+      _schneider = bearbeitet.schneider;
+      _gewonnen = bearbeitet.gewonnen;
+      _multiplikator = bearbeitet.multiplikator;
+    } else {
+      // Standardmäßig die ersten 4 Spieler der Tisch-Reihenfolge aktiv setzen.
+      _aktiveSpielerIds =
+          widget.tisch.spieler.take(4).map((s) => s.id).toSet();
+      _spielart = widget.tisch.spielarten.first;
+    }
   }
 
   /// Ermittelt die Standard-Auswahl der aktiven Spieler für die neue Runde:
@@ -130,7 +163,9 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Runde erfassen')),
+      appBar: AppBar(title: Text(widget.bearbeiteRunde == null
+          ? 'Runde erfassen'
+          : 'Runde bearbeiten')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -285,7 +320,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _auswahlGueltig ? _speichern : null,
-                  child: const Text('Speichern'),
+                  child: Text(widget.bearbeiteRunde == null ? 'Speichern' : 'Änderungen speichern'),
                 ),
               ),
             ),
@@ -306,7 +341,8 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
         .toList();
 
     final runde = Runde.berechnet(
-      id: const Uuid().v4(),
+      id: widget.bearbeiteRunde?.id ?? const Uuid().v4(),
+      zeitpunkt: widget.bearbeiteRunde?.zeitpunkt,
       tarif: widget.tisch.tarif,
       spielart: _spielart,
       spielerParteiIds: _spielerParteiIds.toList(),
@@ -318,7 +354,12 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
       multiplikator: _multiplikator,
     );
 
-    widget.service.rundeHinzufuegen(widget.tisch, runde);
+    if (widget.bearbeiteRunde == null) {
+      widget.service.rundeHinzufuegen(widget.tisch, runde);
+    } else {
+      widget.service
+          .rundeAktualisieren(widget.tisch, widget.bearbeiteRunde!, runde);
+    }
     Navigator.of(context).pop();
   }
 }

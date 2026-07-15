@@ -291,6 +291,18 @@ class SpielService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void rundeAktualisieren(Tisch tisch, Runde alteRunde, Runde neueRunde) {
+    final index = tisch.runden.indexWhere((r) => r.id == alteRunde.id);
+    if (index == -1) return;
+    tisch.runden[index] = neueRunde;
+    notifyListeners();
+  }
+
+  void rundeLoeschen(Tisch tisch, Runde runde) {
+    tisch.runden.removeWhere((r) => r.id == runde.id);
+    notifyListeners();
+  }
+
   void tischBeenden(Tisch tisch) {
     tisch.beenden();
     notifyListeners();

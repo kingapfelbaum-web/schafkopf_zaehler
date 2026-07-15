@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/spieler.dart';
 import '../models/tisch.dart';
+import '../models/runde.dart';
 import '../services/spiel_service.dart';
 import 'runde_erfassen_screen.dart';
 
@@ -193,6 +194,9 @@ class _TischDetailScreenState extends State<TischDetailScreen> {
                                     : Colors.red,
                           ),
                         ),
+                        onLongPress: istAktiv
+                            ? () => _rundeOptionenDialog(context, service, runde)
+                            : null,
                       );
                     },
                   ),
@@ -342,6 +346,68 @@ class _TischDetailScreenState extends State<TischDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _rundeOptionenDialog(
+      BuildContext context, SpielService service, Runde runde) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Bearbeiten'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RundeErfassenScreen(
+                      tisch: tisch,
+                      service: service,
+                      bearbeiteRunde: runde,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Löschen', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _rundeLoeschenBestaetigen(context, service, runde);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _rundeLoeschenBestaetigen(
+      BuildContext context, SpielService service, Runde runde) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Runde löschen?'),
+        content: const Text(
+            'Diese Runde wird endgültig gelöscht und aus dem Punktestand entfernt.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Abbrechen')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              service.rundeLoeschen(tisch, runde);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Löschen'),
+          ),
+        ],
       ),
     );
   }
