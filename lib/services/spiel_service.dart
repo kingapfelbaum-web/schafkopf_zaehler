@@ -194,13 +194,24 @@ class SpielService extends ChangeNotifier {
 
   // ---------- Spielarten-Katalog ----------
 
-  Spielart spielartHinzufuegen(String name, bool einzelspieler,
-      {bool individuelleGewinner = false}) {
+  Spielart spielartHinzufuegen(
+      String name,
+      bool einzelspieler, {
+        bool individuelleGewinner = false,
+        int individuelleAnzahl = 0,
+        bool eigeneBetraege = false,
+        double siegBetrag = 0,
+        double verlustBetrag = 0,
+      }) {
     final s = Spielart(
       id: _uuid.v4(),
       name: name,
       einzelspieler: einzelspieler,
       individuelleGewinner: individuelleGewinner,
+      individuelleAnzahl: individuelleAnzahl,
+      eigeneBetraege: eigeneBetraege,
+      siegBetrag: siegBetrag,
+      verlustBetrag: verlustBetrag,
     );
     _spielarten.add(s);
     _standardAusgewaehlteSpielartenIds.add(s.id);
@@ -209,11 +220,22 @@ class SpielService extends ChangeNotifier {
   }
 
   void spielartAktualisieren(
-      Spielart spielart, String name, bool einzelspieler,
-      {bool individuelleGewinner = false}) {
+      Spielart spielart,
+      String name,
+      bool einzelspieler, {
+        bool individuelleGewinner = false,
+        int individuelleAnzahl = 0,
+        bool eigeneBetraege = false,
+        double siegBetrag = 0,
+        double verlustBetrag = 0,
+      }) {
     spielart.name = name;
     spielart.einzelspieler = einzelspieler;
     spielart.individuelleGewinner = individuelleGewinner;
+    spielart.individuelleAnzahl = individuelleAnzahl;
+    spielart.eigeneBetraege = eigeneBetraege;
+    spielart.siegBetrag = siegBetrag;
+    spielart.verlustBetrag = verlustBetrag;
     notifyListeners();
   }
 

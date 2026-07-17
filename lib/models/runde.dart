@@ -23,6 +23,7 @@ class Runde {
 
   final int anzahlLaufende;
   final bool schneider;
+  final bool schwarz;
 
   /// Bei klassischen Spielen: hat die Spielerpartei gewonnen?
   /// Bei individuellen Gewinnern: true, sofern nicht unentschieden.
@@ -51,6 +52,7 @@ class Runde {
     required this.gegenParteiIds,
     required this.anzahlLaufende,
     required this.schneider,
+    required this.schwarz,
     required this.gewonnen,
     this.unentschieden = false,
     required this.multiplikator,
@@ -71,6 +73,7 @@ class Runde {
     required List<String> gegenParteiIds,
     required int anzahlLaufende,
     required bool schneider,
+    required bool schwarz,
     required bool gewonnen,
     bool unentschieden = false,
     required int multiplikator,
@@ -79,7 +82,10 @@ class Runde {
   }) {
     final grundpreis = tarif.grundpreis(spielart.einzelspieler);
     final zuschlag =
-        tarif.aufpreis * anzahlLaufende + (schneider ? tarif.aufpreis : 0);
+        tarif.aufpreis * anzahlLaufende + (schneider ? tarif.aufpreis : 0) + (schwarz ? tarif.aufpreis : 0);
+    final basisBetrag = spielart.eigeneBetraege
+        ? (gewonnen ? spielart.siegBetrag : spielart.verlustBetrag)
+        : grundpreis + zuschlag;
     final spielwert = (grundpreis + zuschlag) * multiplikator;
 
     final punkte = <String, double>{};
@@ -98,8 +104,9 @@ class Runde {
         punkte[spielerId] = gewonnen ? -spielwert : spielwert;
       }
       for (final spielerId in spielerParteiIds) {
-        punkte[spielerId] =
-        gewonnen ? spielwert * faktorSpielerpartei : -spielwert * faktorSpielerpartei;
+        punkte[spielerId] = gewonnen
+            ? spielwert * faktorSpielerpartei
+            : -spielwert * faktorSpielerpartei;
       }
     }
 
@@ -112,6 +119,7 @@ class Runde {
       gegenParteiIds: gegenParteiIds,
       anzahlLaufende: anzahlLaufende,
       schneider: schneider,
+      schwarz: schwarz,
       gewonnen: unentschieden ? false : gewonnen,
       unentschieden: unentschieden,
       multiplikator: multiplikator,
@@ -129,6 +137,7 @@ class Runde {
         'gegenParteiIds': gegenParteiIds,
         'anzahlLaufende': anzahlLaufende,
         'schneider': schneider,
+        'schwarz': schwarz,
         'gewonnen': gewonnen,
         'unentschieden': unentschieden,
         'multiplikator': multiplikator,
@@ -145,6 +154,7 @@ class Runde {
         gegenParteiIds: List<String>.from(json['gegenParteiIds'] as List),
         anzahlLaufende: json['anzahlLaufende'] as int,
         schneider: json['schneider'] as bool,
+        schwarz: json['schwarz'] as bool,
         gewonnen: json['gewonnen'] as bool,
         unentschieden: json['unentschieden'] as bool? ?? false,
         multiplikator: json['multiplikator'] as int,

@@ -33,6 +33,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
 
   int _anzahlLaufende = 0;
   bool _schneider = false;
+  bool _schwarz = false;
   bool _gewonnen = true;
   int _multiplikator = 1;
 
@@ -61,6 +62,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
       _spielerParteiIds.addAll(bearbeitet.spielerParteiIds);
       _anzahlLaufende = bearbeitet.anzahlLaufende;
       _schneider = bearbeitet.schneider;
+      _schwarz = bearbeitet.schwarz;
       _gewonnen = bearbeitet.gewonnen;
       _multiplikator = bearbeitet.multiplikator;
     } else {
@@ -82,15 +84,17 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
 
   bool get _individuell => _spielart.individuelleGewinner;
 
-  /// Bei klassischen Spielen fest (1 oder 2), bei individuellen Gewinnern
-  /// eine Obergrenze (0, 1 oder 2 sind erlaubt).
-  int get _maxSpielerpartei =>
-      _individuell ? 2 : _spielart.anzahlSpielerpartei;
+  /// Bei fester individueller Anzahl (Ramsch: immer 1) ist die Auswahl exakt
+  /// vorgegeben; bei flexibler Anzahl (0) sind 0-2 Spieler erlaubt.
+  bool get _flexibleAnzahl => _individuell && _spielart.individuelleAnzahl == 0;
+
+  int get _maxSpielerpartei => _individuell
+      ? (_flexibleAnzahl ? 2 : _spielart.individuelleAnzahl)
+      : _spielart.anzahlSpielerpartei;
 
   bool get _auswahlGueltig {
     if (_aktiveSpielerIds.length != 4) return false;
-    if (_individuell) {
-      // 0 (unentschieden), 1 oder 2 Gewinner sind erlaubt.
+    if (_flexibleAnzahl) {
       return _spielerParteiIds.length <= 2 &&
           _spielerParteiIds.every(_aktiveSpielerIds.contains);
     }
@@ -98,13 +102,19 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
         _spielerParteiIds.every(_aktiveSpielerIds.contains);
   }
 
-  bool get _unentschieden => _individuell && _spielerParteiIds.isEmpty;
+  /// Unentschieden ist nur bei flexibler Anzahl mit 0 ausgewählten Spielern
+  /// möglich (z.B. individuelles Sonderspiel ohne Ramsch-artige Festlegung).
+  bool get _unentschieden => _flexibleAnzahl && _spielerParteiIds.isEmpty;
 
   double get _vorschauSpielwert {
+    if (_spielart.eigeneBetraege) {
+      return (_gewonnen ? _spielart.siegBetrag : _spielart.verlustBetrag) *
+          _multiplikator;
+    }
     final tarif = widget.tisch.tarif;
     final grundpreis = tarif.grundpreis(_spielart.einzelspieler);
     final zuschlag =
-        tarif.aufpreis * _anzahlLaufende + (_schneider ? tarif.aufpreis : 0);
+        tarif.aufpreis * _anzahlLaufende + (_schneider ? tarif.aufpreis : 0) + (_schwarz ? tarif.aufpreis : 0);
     return (grundpreis + zuschlag) * _multiplikator;
   }
 
@@ -230,9 +240,14 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
             value: _schneider,
             onChanged: (v) => setState(() => _schneider = v),
           ),
-          if (!_individuell)
+          SwitchListTile(
+            title: const Text('Schwarz'),
+            value: _schwarz,
+            onChanged: (v) => setState(() => _schwarz = v),
+          ),
+          if (!_unentschieden)
             SwitchListTile(
-              title: const Text('Spielerpartei gewonnen'),
+              title: Text('Spielerpartei gewonnen'),
               value: _gewonnen,
               onChanged: (v) => setState(() => _gewonnen = v),
             ),
@@ -319,6 +334,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
       gegenParteiIds: gegenParteiIds,
       anzahlLaufende: _anzahlLaufende,
       schneider: _schneider,
+      schwarz: _schwarz,
       gewonnen: _individuell ? true : _gewonnen,
       unentschieden: _unentschieden,
       multiplikator: _multiplikator,

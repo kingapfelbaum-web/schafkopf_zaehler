@@ -65,6 +65,12 @@ class SpieleBearbeitenScreen extends StatelessWidget {
     final nameController = TextEditingController(text: bestehende?.name ?? '');
     bool einzelspieler = bestehende?.einzelspieler ?? true;
     bool individuelleGewinner = bestehende?.individuelleGewinner ?? false;
+    int individuelleAnzahl = bestehende?.individuelleAnzahl ?? 0;
+    bool eigeneBetraege = bestehende?.eigeneBetraege ?? false;
+    final siegController = TextEditingController(
+      text: (bestehende?.siegBetrag ?? (einzelspieler ? standardTarif.sauspielPreis : standardTarif.soloPreis)).toStringAsFixed(2));
+    final verlustController = TextEditingController(
+      text: (bestehende?.verlustBetrag ?? (einzelspieler ? standardTarif.sauspielPreis : standardTarif.soloPreis)).toStringAsFixed(2));
 
     showDialog(
       context: context,
@@ -105,6 +111,57 @@ class SpieleBearbeitenScreen extends StatelessWidget {
                   onChanged: (v) =>
                       setState(() => individuelleGewinner = v),
                 ),
+                const SizedBox(height: 16),
+                if (individuelleGewinner) ...[
+                  const SizedBox(height: 8),
+                  const Text('Anzahl beteiligter Spieler'),
+                  const SizedBox(height: 4),
+                  SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('Flexibel (0-2)')),
+                      ButtonSegment(value: 1, label: Text('Immer 1')),
+                      ButtonSegment(value: 2, label: Text('Immer 2')),
+                    ],
+                    selected: {individuelleAnzahl},
+                    onSelectionChanged: (selection) =>
+                        setState(() => individuelleAnzahl = selection.first),
+                  ),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Eigene feste Beträge'),
+                    subtitle: const Text(
+                        'Statt der normalen Tarif-Berechnung werden feste Beträge für Sieg/Niederlage verwendet (z.B. für Ramsch).'),
+                    value: eigeneBetraege,
+                    onChanged: (v) => setState(() => eigeneBetraege = v),
+                  ),
+                  if (eigeneBetraege) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: siegController,
+                            decoration: const InputDecoration(
+                                labelText: 'Betrag bei Sieg (€)'),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: verlustController,
+                            decoration: const InputDecoration(
+                                labelText: 'Betrag bei Niederlage (€)'),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ],
             ),
           ),
@@ -117,12 +174,14 @@ class SpieleBearbeitenScreen extends StatelessWidget {
                 final name = nameController.text.trim();
                 if (name.isEmpty) return;
                 if (bestehende == null) {
+                  if (individuelleGewinner) {
                   service.spielartHinzufuegen(name, einzelspieler,
-                      individuelleGewinner: individuelleGewinner);
+                      individuelleGewinner: individuelleGewinner, individuelleAnzahl: individuelleAnzahl, eigeneBetraege: eigeneBetraege, siegBetrag: double.parse(siegController.text), verlustBetrag: double.parse(verlustController.text));
+                  }
                 } else {
                   service.spielartAktualisieren(
                       bestehende, name, einzelspieler,
-                      individuelleGewinner: individuelleGewinner);
+                      individuelleGewinner: individuelleGewinner, individuelleAnzahl: individuelleAnzahl, eigeneBetraege: eigeneBetraege, siegBetrag: double.parse(siegController.text), verlustBetrag: double.parse(verlustController.text));
                 }
                 Navigator.of(ctx).pop();
               },
