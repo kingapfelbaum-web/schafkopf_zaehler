@@ -64,30 +64,59 @@ class SpielService extends ChangeNotifier {
       };
 
   void _zustandAusJson(Map<String, dynamic> json) {
+    final geladenePlayerinnen = <Spieler>[];
+    for (final p in (json['allePlayerinnen'] as List? ?? [])) {
+      try {
+        geladenePlayerinnen.add(Spieler.fromJson(p as Map<String, dynamic>));
+      } catch (e) {
+        debugPrint('Spieler konnte nicht geladen werden: $e');
+      }
+    }
     _allePlayerinnen
       ..clear()
-      ..addAll((json['allePlayerinnen'] as List)
-          .map((p) => Spieler.fromJson(p as Map<String, dynamic>)));
+      ..addAll(geladenePlayerinnen);
 
-    _spielarten = (json['spielarten'] as List)
-        .map((s) => Spielart.fromJson(s as Map<String, dynamic>))
-        .toList();
-    if (_spielarten.isEmpty) {
-      _spielarten = standardSpielarten();
+    final geladeneSpielarten = <Spielart>[];
+    for (final s in (json['spielarten'] as List? ?? [])) {
+      try {
+        geladeneSpielarten.add(Spielart.fromJson(s as Map<String, dynamic>));
+      } catch (e) {
+        debugPrint('Spielart konnte nicht geladen werden: $e');
+      }
+    }
+    _spielarten = geladeneSpielarten.isEmpty ? standardSpielarten() : geladeneSpielarten;
+
+    try {
+      _standardTarif =
+          Tarif.fromJson(json['standardTarif'] as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('Standard-Tarif konnte nicht geladen werden: $e');
+      _standardTarif = Tarif();
     }
 
-    _standardTarif =
-        Tarif.fromJson(json['standardTarif'] as Map<String, dynamic>);
-    _standardAusgewaehlteSpielartenIds =
-        Set<String>.from(json['standardAusgewaehlteSpielartenIds'] as List);
+    try {
+      _standardAusgewaehlteSpielartenIds =
+      Set<String>.from(json['standardAusgewaehlteSpielartenIds'] as List? ?? []);
+    } catch (e) {
+      debugPrint('Standard-Auswahl konnte nicht geladen werden: $e');
+      _standardAusgewaehlteSpielartenIds = _spielarten.map((s) => s.id).toSet();
+    }
 
+    final geladeneTische = <Tisch>[];
+    for (final t in (json['tische'] as List? ?? [])) {
+      try {
+        geladeneTische.add(Tisch.fromJson(
+          t as Map<String, dynamic>,
+          allePlayerinnen: _allePlayerinnen,
+          alleSpielarten: _spielarten,
+        ));
+      } catch (e) {
+        debugPrint('Tisch konnte nicht geladen werden: $e');
+      }
+    }
     _tische
       ..clear()
-      ..addAll((json['tische'] as List).map((t) => Tisch.fromJson(
-            t as Map<String, dynamic>,
-            allePlayerinnen: _allePlayerinnen,
-            alleSpielarten: _spielarten,
-          )));
+      ..addAll(geladeneTische);
   }
 
   /// Lädt gespeicherte Daten vom Gerät. Muss einmalig beim App-Start
@@ -103,8 +132,6 @@ class SpielService extends ChangeNotifier {
       _zustandAusJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (e) {
       debugPrint('Fehler beim Laden der gespeicherten Daten: $e');
-      // Bei defekten/inkompatiblen Daten mit dem Standardzustand weiterfahren,
-      // statt die App abstürzen zu lassen.
     } finally {
       _geladen = true;
     }
