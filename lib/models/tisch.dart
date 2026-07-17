@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'spieler.dart';
 import 'runde.dart';
 import 'tarif.dart';
@@ -83,26 +85,54 @@ class Tisch {
   /// Ist eine ID dort nicht (mehr) vorhanden (z.B. gelöschte Spielart),
   /// wird ein minimaler Platzhalter erzeugt, damit alte Runden lesbar bleiben.
   factory Tisch.fromJson(
-    Map<String, dynamic> json, {
-    required List<Spieler> allePlayerinnen,
-    required List<Spielart> alleSpielarten,
-  }) {
-    final spielerIds = List<String>.from(json['spielerIds'] as List);
+      Map<String, dynamic> json, {
+        required List<Spieler> allePlayerinnen,
+        required List<Spielart> alleSpielarten,
+      }) {
+    final spielerIds = List<String>.from(json['spielerIds'] as List? ?? []);
     final spieler = spielerIds
         .map((id) => allePlayerinnen.firstWhere(
-              (s) => s.id == id,
-              orElse: () => Spieler(id: id, name: '(gelöschter Spieler)'),
-            ))
+          (s) => s.id == id,
+      orElse: () => Spieler(id: id, name: '(gelöschter Spieler)'),
+    ))
         .toList();
 
-    final spielartenIds = List<String>.from(json['spielartenIds'] as List);
+    final spielartenIds =
+    List<String>.from(json['spielartenIds'] as List? ?? []);
     final spielarten = spielartenIds
         .map((id) => alleSpielarten.firstWhere(
-              (s) => s.id == id,
-              orElse: () => Spielart(
-                  id: id, name: '(gelöschte Spielart)', einzelspieler: false),
-            ))
+          (s) => s.id == id,
+      orElse: () => Spielart(
+          id: id, name: '(gelöschte Spielart)', einzelspieler: false),
+    ))
         .toList();
+
+    // Jede Runde einzeln parsen: eine defekte/inkompatible Runde soll nicht
+    // den kompletten Tisch (inkl. aller anderen, gültigen Runden) verwerfen.
+    final runden = <Runde>[];
+    for (final r in (json['runden'] as List? ?? [])) {
+      try {
+        runden.add(Runde.fromJson(r as Map<String, dynamic>));
+      } catch (e) {
+        debugPrint('Runde konnte nicht geladen werden: $e');
+      }
+    }
+
+    TischStatus status;
+    try {
+      status = TischStatus.values.byName(json['status'] as String);
+    } catch (e) {
+      debugPrint('Tisch-Status konnte nicht gelesen werden, nehme "aktiv": $e');
+      status = TischStatus.aktiv;
+    }
+
+    Tarif tarif;
+    try {
+      tarif = Tarif.fromJson(json['tarif'] as Map<String, dynamic>);
+    } catch (e) {
+      debugPrint('Tarif konnte nicht gelesen werden, nehme Standardwerte: $e');
+      tarif = Tarif();
+    }
 
     return Tisch(
       id: json['id'] as String,
@@ -110,13 +140,11 @@ class Tisch {
       beendetAm: json['beendetAm'] == null
           ? null
           : DateTime.parse(json['beendetAm'] as String),
-      status: TischStatus.values.byName(json['status'] as String),
-      tarif: Tarif.fromJson(json['tarif'] as Map<String, dynamic>),
+      status: status,
+      tarif: tarif,
       spieler: spieler,
       spielarten: spielarten,
-      runden: (json['runden'] as List)
-          .map((r) => Runde.fromJson(r as Map<String, dynamic>))
-          .toList(),
+      runden: runden,
     );
   }
 }

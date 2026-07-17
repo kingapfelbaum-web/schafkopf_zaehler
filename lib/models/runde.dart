@@ -52,7 +52,7 @@ class Runde {
     required this.gegenParteiIds,
     required this.anzahlLaufende,
     required this.schneider,
-    required this.schwarz,
+    this.schwarz = false,
     required this.gewonnen,
     this.unentschieden = false,
     required this.multiplikator,
@@ -73,7 +73,7 @@ class Runde {
     required List<String> gegenParteiIds,
     required int anzahlLaufende,
     required bool schneider,
-    required bool schwarz,
+    bool schwarz = false,
     required bool gewonnen,
     bool unentschieden = false,
     required int multiplikator,
@@ -82,10 +82,9 @@ class Runde {
   }) {
     final grundpreis = tarif.grundpreis(spielart.einzelspieler);
     final zuschlag =
-        tarif.aufpreis * anzahlLaufende + (schneider ? tarif.aufpreis : 0) + (schwarz ? tarif.aufpreis : 0);
-    final basisBetrag = spielart.eigeneBetraege
-        ? (gewonnen ? spielart.siegBetrag : spielart.verlustBetrag)
-        : grundpreis + zuschlag;
+        tarif.aufpreis * anzahlLaufende + (schneider ? tarif.aufpreis : 0)
+        + (schwarz ? tarif.aufpreis : 0)
+    ;
     final spielwert = (grundpreis + zuschlag) * multiplikator;
 
     final punkte = <String, double>{};
@@ -146,22 +145,28 @@ class Runde {
       };
 
   factory Runde.fromJson(Map<String, dynamic> json) => Runde(
-        id: json['id'] as String,
-        zeitpunkt: DateTime.parse(json['zeitpunkt'] as String),
-        spielartName: json['spielartName'] as String,
-        spielartEinzelspieler: json['spielartEinzelspieler'] as bool,
-        spielerParteiIds: List<String>.from(json['spielerParteiIds'] as List),
-        gegenParteiIds: List<String>.from(json['gegenParteiIds'] as List),
-        anzahlLaufende: json['anzahlLaufende'] as int,
-        schneider: json['schneider'] as bool,
-        schwarz: json['schwarz'] as bool,
-        gewonnen: json['gewonnen'] as bool,
-        unentschieden: json['unentschieden'] as bool? ?? false,
-        multiplikator: json['multiplikator'] as int,
-        spielwert: (json['spielwert'] as num).toDouble(),
-        punkteProSpieler: Map<String, double>.from(
-          (json['punkteProSpieler'] as Map)
-              .map((k, v) => MapEntry(k as String, (v as num).toDouble())),
-        ),
-      );
+    id: json['id'] as String? ?? '',
+    zeitpunkt: json['zeitpunkt'] != null
+        ? DateTime.tryParse(json['zeitpunkt'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    spielartName: json['spielartName'] as String? ?? '(unbekannt)',
+    spielartEinzelspieler: json['spielartEinzelspieler'] as bool? ?? false,
+    spielerParteiIds:
+    List<String>.from(json['spielerParteiIds'] as List? ?? []),
+    gegenParteiIds:
+    List<String>.from(json['gegenParteiIds'] as List? ?? []),
+    anzahlLaufende: json['anzahlLaufende'] as int? ?? 0,
+    schneider: json['schneider'] as bool? ?? false,
+    schwarz: json['schwarz'] as bool? ?? false,
+    gewonnen: json['gewonnen'] as bool? ?? true,
+    unentschieden: json['unentschieden'] as bool? ?? false,
+    multiplikator: json['multiplikator'] as int? ?? 1,
+    spielwert: (json['spielwert'] as num?)?.toDouble() ?? 0,
+    punkteProSpieler: json['punkteProSpieler'] != null
+        ? Map<String, double>.from(
+      (json['punkteProSpieler'] as Map)
+          .map((k, v) => MapEntry(k as String, (v as num).toDouble())),
+    )
+        : <String, double>{},
+  );
 }

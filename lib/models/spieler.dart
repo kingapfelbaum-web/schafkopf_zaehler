@@ -6,8 +6,10 @@ class Spieler {
 
   Map<String, dynamic> toJson() => {'id': id, 'name': name};
 
-  factory Spieler.fromJson(Map<String, dynamic> json) =>
-      Spieler(id: json['id'] as String, name: json['name'] as String);
+  factory Spieler.fromJson(Map<String, dynamic> json) => Spieler(
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? '(unbenannt)',
+  );
 
   @override
   bool operator ==(Object other) => other is Spieler && other.id == id;

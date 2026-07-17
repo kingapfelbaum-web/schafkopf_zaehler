@@ -114,7 +114,9 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
     final tarif = widget.tisch.tarif;
     final grundpreis = tarif.grundpreis(_spielart.einzelspieler);
     final zuschlag =
-        tarif.aufpreis * _anzahlLaufende + (_schneider ? tarif.aufpreis : 0) + (_schwarz ? tarif.aufpreis : 0);
+        tarif.aufpreis * _anzahlLaufende + (_schneider ? tarif.aufpreis : 0)
+            + (_schwarz ? tarif.aufpreis : 0)
+            ;
     return (grundpreis + zuschlag) * _multiplikator;
   }
 

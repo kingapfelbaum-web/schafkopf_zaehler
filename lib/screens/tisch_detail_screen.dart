@@ -157,6 +157,7 @@ class _TischDetailScreenState extends State<TischDetailScreen> {
                         if (runde.anzahlLaufende > 0)
                           '${runde.anzahlLaufende} Laufende',
                         if (runde.schneider) 'Schneider',
+                        if (runde.schwarz) 'Schwarz',
                         if (runde.multiplikator > 1)
                           '${runde.multiplikator}x',
                       ].join(' · ');

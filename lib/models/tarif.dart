@@ -28,8 +28,8 @@ class Tarif {
       };
 
   factory Tarif.fromJson(Map<String, dynamic> json) => Tarif(
-        sauspielPreis: (json['sauspielPreis'] as num).toDouble(),
-        soloPreis: (json['soloPreis'] as num).toDouble(),
-        aufpreis: (json['aufpreis'] as num).toDouble(),
-      );
+    sauspielPreis: (json['sauspielPreis'] as num?)?.toDouble() ?? 0.20,
+    soloPreis: (json['soloPreis'] as num?)?.toDouble() ?? 0.50,
+    aufpreis: (json['aufpreis'] as num?)?.toDouble() ?? 0.20,
+  );
 }
