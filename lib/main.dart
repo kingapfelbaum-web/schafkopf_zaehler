@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 
 import 'services/spiel_service.dart';
 import 'screens/aktive_spiele_screen.dart';
@@ -119,6 +120,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 final uri = Uri.parse(info.url);
                 await launchUrl(uri,
                     mode: LaunchMode.externalApplication);
+                await Future.delayed(const Duration(milliseconds: 500));
+                exit(0);
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
