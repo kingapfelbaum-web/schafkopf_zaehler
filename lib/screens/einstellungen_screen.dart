@@ -159,7 +159,13 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
 
     try {
       if (modus) {
-        final anzahl = await service.datenImportierenHinzufuegen(inhalt);
+        final entscheidungen = await _konflikteAufloesen(service, inhalt);
+        if (entscheidungen == null) return; // abgebrochen
+
+        final anzahl = await service.datenImportierenHinzufuegen(
+          inhalt,
+          entscheidungen: entscheidungen,
+        );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$anzahl Spiel(e) hinzugefügt')),
@@ -167,7 +173,6 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
       } else {
         await service.datenImportieren(inhalt);
         if (!mounted) return;
-        // Eingabefelder mit den importierten Standardwerten aktualisieren.
         final tarif = service.standardTarif;
         setState(() {
           _sauspielController.text = tarif.sauspielPreis.toStringAsFixed(2);
@@ -190,6 +195,68 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
         SnackBar(content: Text('Import fehlgeschlagen: $e')),
       );
     }
+  }
+
+  /// Fragt für jeden erkannten Namenskonflikt einzeln ab, ob der importierte
+  /// Spieler mit dem vorhandenen gleichnamigen zusammengeführt oder unter
+  /// einem neuen Namen angelegt werden soll.
+  /// Gibt null zurück, falls der Nutzer abbricht.
+  Future<Map<String, String>?> _konflikteAufloesen(
+      SpielService service, String inhalt) async {
+    final konflikte = service.importKollisionenErmitteln(inhalt);
+    if (konflikte.isEmpty) return {};
+
+    final entscheidungen = <String, String>{};
+
+    for (final konflikt in konflikte) {
+      if (!mounted) return null;
+      final umbenennenController =
+      TextEditingController(text: '${konflikt.name} (importiert)');
+
+      final ergebnis = await showDialog<String>(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: const Text('Spielername bereits vorhanden'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                    'Es gibt bereits einen Spieler namens "${konflikt.name}". Wie soll verfahren werden?'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: umbenennenController,
+                  decoration: const InputDecoration(
+                    labelText: 'Neuer Name (falls umbenennen)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Abbrechen')),
+              OutlinedButton(
+                onPressed: () =>
+                    Navigator.of(ctx).pop(umbenennenController.text.trim()),
+                child: const Text('Umbenennen'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop('merge'),
+                child: const Text('Zusammenführen'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (ergebnis == null) return null; // Nutzer hat abgebrochen
+      entscheidungen[konflikt.importierteId] = ergebnis;
+    }
+
+    return entscheidungen;
   }
 
   @override

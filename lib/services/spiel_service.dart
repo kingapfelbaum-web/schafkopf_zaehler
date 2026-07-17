@@ -10,6 +10,20 @@ import '../models/runde.dart';
 import '../models/tarif.dart';
 import '../models/spielart.dart';
 
+/// Ein bei einem "Hinzufügen"-Import erkannter Namenskonflikt: ein
+/// importierter Spieler trägt denselben Namen wie ein bereits vorhandener.
+class SpielerImportKonflikt {
+  final String importierteId;
+  final String name;
+  final String vorhandeneId;
+
+  SpielerImportKonflikt({
+    required this.importierteId,
+    required this.name,
+    required this.vorhandeneId,
+  });
+}
+
 class SpielService extends ChangeNotifier {
   final _uuid = const Uuid();
   static const _storageKey = 'schafkopf_daten_v1';
@@ -164,28 +178,88 @@ class SpielService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Ermittelt vorab, welche Spieler im Export denselben Namen tragen wie
+  /// bereits vorhandene Spieler. Für jeden Konflikt muss vor dem eigentlichen
+  /// Import entschieden werden: zusammenführen oder unter neuem Namen anlegen.
+  List<SpielerImportKonflikt> importKollisionenErmitteln(String jsonStr) {
+    final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+    final konflikte = <SpielerImportKonflikt>[];
+
+    for (final p in (json['allePlayerinnen'] as List? ?? [])) {
+      try {
+        final importiert = Spieler.fromJson(p as Map<String, dynamic>);
+        Spieler? vorhandener;
+        for (final s in _allePlayerinnen) {
+          if (s.name.toLowerCase() == importiert.name.toLowerCase()) {
+            vorhandener = s;
+            break;
+          }
+        }
+        if (vorhandener != null) {
+          konflikte.add(SpielerImportKonflikt(
+            importierteId: importiert.id,
+            name: importiert.name,
+            vorhandeneId: vorhandener.id,
+          ));
+        }
+      } catch (e) {
+        debugPrint('Spieler bei Kollisionsprüfung übersprungen: $e');
+      }
+    }
+    return konflikte;
+  }
+
   /// Fügt die Daten aus einem Export zum bestehenden Zustand hinzu, statt
-  /// ihn zu ersetzen. Spieler werden anhand ihres Namens abgeglichen
-  /// (Duplikate zusammengeführt, damit importierte Tische auf bestehende
-  /// Spieler zeigen), Spielarten anhand ihres Namens, Tische werden immer
-  /// als neue Einträge hinzugefügt (auch wenn inhaltlich identisch), damit
-  /// nichts unbeabsichtigt verloren geht.
-  Future<int> datenImportierenHinzufuegen(String jsonStr) async {
+  /// ihn zu ersetzen. Tische werden immer als neue Einträge hinzugefügt.
+  ///
+  /// [entscheidungen] regelt Namenskonflikte: Schlüssel ist die ID des
+  /// importierten Spielers (siehe importKollisionenErmitteln), Wert ist
+  /// entweder der String 'merge' (mit dem vorhandenen gleichnamigen Spieler
+  /// zusammenführen) oder ein neuer, eindeutiger Name (der importierte
+  /// Spieler wird dann als eigenständiger neuer Spieler unter diesem Namen
+  /// angelegt). Spieler ohne Namenskonflikt werden automatisch übernommen.
+  Future<int> datenImportierenHinzufuegen(
+      String jsonStr, {
+        Map<String, String> entscheidungen = const {},
+      }) async {
     final json = jsonDecode(jsonStr) as Map<String, dynamic>;
 
-    // 1) Spieler zusammenführen: Name → vorhandene oder neue ID.
+    // 1) Spieler zusammenführen/anlegen, unter Berücksichtigung der
+    // getroffenen Entscheidungen bei Namenskonflikten.
     final idUmschreibungSpieler = <String, String>{};
     for (final p in (json['allePlayerinnen'] as List? ?? [])) {
       try {
         final importiert = Spieler.fromJson(p as Map<String, dynamic>);
-        final vorhandener = _allePlayerinnen.firstWhere(
-              (s) => s.name.toLowerCase() == importiert.name.toLowerCase(),
-          orElse: () => importiert,
-        );
-        if (!_allePlayerinnen.contains(vorhandener)) {
-          _allePlayerinnen.add(vorhandener);
+        final entscheidung = entscheidungen[importiert.id];
+
+        Spieler zielSpieler;
+        if (entscheidung == 'merge') {
+          zielSpieler = _allePlayerinnen.firstWhere(
+                (s) => s.name.toLowerCase() == importiert.name.toLowerCase(),
+            orElse: () => importiert,
+          );
+          if (!_allePlayerinnen.contains(zielSpieler)) {
+            _allePlayerinnen.add(zielSpieler);
+          }
+        } else if (entscheidung != null && entscheidung.trim().isNotEmpty) {
+          // Umbenennen: als eigenständiger neuer Spieler unter dem neuen
+          // Namen anlegen, damit keine Vermischung mit dem vorhandenen
+          // gleichnamigen Spieler entsteht.
+          zielSpieler = Spieler(id: _uuid.v4(), name: entscheidung.trim());
+          _allePlayerinnen.add(zielSpieler);
+        } else {
+          // Kein Konflikt (oder keine Entscheidung nötig): wie bisher
+          // automatisch anhand des Namens abgleichen bzw. neu anlegen.
+          final vorhandener = _allePlayerinnen.firstWhere(
+                (s) => s.name.toLowerCase() == importiert.name.toLowerCase(),
+            orElse: () => importiert,
+          );
+          if (!_allePlayerinnen.contains(vorhandener)) {
+            _allePlayerinnen.add(vorhandener);
+          }
+          zielSpieler = vorhandener;
         }
-        idUmschreibungSpieler[importiert.id] = vorhandener.id;
+        idUmschreibungSpieler[importiert.id] = zielSpieler.id;
       } catch (e) {
         debugPrint('Spieler beim Zusammenführen übersprungen: $e');
       }
@@ -209,14 +283,13 @@ class SpielService extends ChangeNotifier {
       }
     }
 
-    // 3) Tische mit umgeschriebenen IDs neu hinzufügen (nie überschreiben,
-    // damit auch inhaltlich gleiche/ähnliche Tische nicht verloren gehen).
+    // 3) Tische mit umgeschriebenen IDs neu hinzufügen.
+    // 3) Tische mit umgeschriebenen IDs neu hinzufügen.
     var importierteTische = 0;
     for (final t in (json['tische'] as List? ?? [])) {
       try {
         final tischJson = Map<String, dynamic>.from(t as Map<String, dynamic>);
-
-        tischJson['id'] = _uuid.v4(); // neue eindeutige ID vergeben
+        tischJson['id'] = _uuid.v4();
 
         final urspruenglicheSpielerIds =
         List<String>.from(tischJson['spielerIds'] as List? ?? []);
@@ -229,6 +302,36 @@ class SpielService extends ChangeNotifier {
         tischJson['spielartenIds'] = urspruenglicheSpielartenIds
             .map((id) => idUmschreibungSpielart[id] ?? id)
             .toList();
+
+        // Wichtig: Auch die Spieler-IDs INNERHALB jeder einzelnen Runde
+        // müssen umgeschrieben werden (spielerParteiIds, gegenParteiIds,
+        // punkteProSpieler-Keys), sonst zeigen sie nach dem Merge auf
+        // nicht mehr existierende IDs.
+        final urspruenglicheRunden =
+        List<dynamic>.from(tischJson['runden'] as List? ?? []);
+        tischJson['runden'] = urspruenglicheRunden.map((r) {
+          final rundeJson = Map<String, dynamic>.from(r as Map<String, dynamic>);
+
+          rundeJson['spielerParteiIds'] = List<String>.from(
+              rundeJson['spielerParteiIds'] as List? ?? [])
+              .map((id) => idUmschreibungSpieler[id] ?? id)
+              .toList();
+
+          rundeJson['gegenParteiIds'] = List<String>.from(
+              rundeJson['gegenParteiIds'] as List? ?? [])
+              .map((id) => idUmschreibungSpieler[id] ?? id)
+              .toList();
+
+          final urspruenglichePunkte = Map<String, dynamic>.from(
+              rundeJson['punkteProSpieler'] as Map? ?? {});
+          rundeJson['punkteProSpieler'] = {
+            for (final eintrag in urspruenglichePunkte.entries)
+              (idUmschreibungSpieler[eintrag.key] ?? eintrag.key):
+              eintrag.value,
+          };
+
+          return rundeJson;
+        }).toList();
 
         final tisch = Tisch.fromJson(
           tischJson,
@@ -246,27 +349,28 @@ class SpielService extends ChangeNotifier {
     return importierteTische;
   }
 
-  /// Wie `datenExportieren()`, aber nur mit den ausgewählten Tischen und
-  /// Spielern. Spieler, die an einem ausgewählten Tisch teilnehmen, werden
-  /// automatisch mit exportiert (sonst wären die Tisch-Daten beim Import
-  /// nicht auflösbar) – auch wenn sie nicht explizit ausgewählt wurden.
-  String datenExportierenGefiltert({
-    required Set<String> tischIds,
-    required Set<String> spielerIds,
-  }) {
+  /// Exportiert die ausgewählten Tische inkl. aller Spieler, die dort
+  /// mitgespielt haben, sowie nur der Spielarten, die an diesen Tischen
+  /// tatsächlich freigeschaltet waren (nicht der komplette globale Katalog).
+  String datenExportierenGefiltert({required Set<String> tischIds}) {
     final ausgewaehlteTische =
     _tische.where((t) => tischIds.contains(t.id)).toList();
 
     final spielerIdsGesamt = <String>{
-      ...spielerIds,
       for (final t in ausgewaehlteTische) ...t.spieler.map((s) => s.id),
     };
     final ausgewaehltePlayerinnen =
     _allePlayerinnen.where((s) => spielerIdsGesamt.contains(s.id)).toList();
 
+    final spielartIdsGesamt = <String>{
+      for (final t in ausgewaehlteTische) ...t.spielarten.map((s) => s.id),
+    };
+    final ausgewaehlteSpielarten =
+    _spielarten.where((s) => spielartIdsGesamt.contains(s.id)).toList();
+
     final json = {
       'allePlayerinnen': ausgewaehltePlayerinnen.map((p) => p.toJson()).toList(),
-      'spielarten': _spielarten.map((s) => s.toJson()).toList(),
+      'spielarten': ausgewaehlteSpielarten.map((s) => s.toJson()).toList(),
       'standardTarif': _standardTarif.toJson(),
       'standardAusgewaehlteSpielartenIds':
       _standardAusgewaehlteSpielartenIds.toList(),

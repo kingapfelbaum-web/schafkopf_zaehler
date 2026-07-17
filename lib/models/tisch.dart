@@ -118,12 +118,22 @@ class Tisch {
       }
     }
 
-    TischStatus status;
-    try {
-      status = TischStatus.values.byName(json['status'] as String);
-    } catch (e) {
-      debugPrint('Tisch-Status konnte nicht gelesen werden, nehme "aktiv": $e');
-      status = TischStatus.aktiv;
+    // Robust gegen unterschiedliche Serialisierungsformen (z.B. reiner
+    // Enum-Name "beendet" oder mit Präfix "TischStatus.beendet") und
+    // Groß-/Kleinschreibung, damit ein beendeter Tisch nicht versehentlich
+    // als "aktiv" importiert wird.
+    TischStatus status = TischStatus.aktiv;
+    final statusRaw = json['status'];
+    if (statusRaw is String) {
+      final bereinigt =
+      statusRaw.contains('.') ? statusRaw.split('.').last : statusRaw;
+      status = TischStatus.values.firstWhere(
+            (s) => s.name.toLowerCase() == bereinigt.toLowerCase(),
+        orElse: () {
+          debugPrint('Unbekannter Tisch-Status "$statusRaw", nehme "aktiv"');
+          return TischStatus.aktiv;
+        },
+      );
     }
 
     Tarif tarif;

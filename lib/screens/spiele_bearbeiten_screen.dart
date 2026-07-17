@@ -177,11 +177,17 @@ class SpieleBearbeitenScreen extends StatelessWidget {
                   if (individuelleGewinner) {
                   service.spielartHinzufuegen(name, einzelspieler,
                       individuelleGewinner: individuelleGewinner, individuelleAnzahl: individuelleAnzahl, eigeneBetraege: eigeneBetraege, siegBetrag: double.parse(siegController.text), verlustBetrag: double.parse(verlustController.text));
+                  } else {
+                    service.spielartHinzufuegen(name, einzelspieler);
                   }
                 } else {
-                  service.spielartAktualisieren(
-                      bestehende, name, einzelspieler,
-                      individuelleGewinner: individuelleGewinner, individuelleAnzahl: individuelleAnzahl, eigeneBetraege: eigeneBetraege, siegBetrag: double.parse(siegController.text), verlustBetrag: double.parse(verlustController.text));
+                  if (individuelleGewinner) {
+                    service.spielartAktualisieren(
+                        bestehende, name, einzelspieler,
+                        individuelleGewinner: individuelleGewinner, individuelleAnzahl: individuelleAnzahl, eigeneBetraege: eigeneBetraege, siegBetrag: double.parse(siegController.text), verlustBetrag: double.parse(verlustController.text));
+                  } else {
+                    service.spielartAktualisieren(bestehende, name, einzelspieler);
+                  }
                 }
                 Navigator.of(ctx).pop();
               },
