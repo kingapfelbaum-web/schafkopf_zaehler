@@ -164,6 +164,88 @@ class SpielService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Fügt die Daten aus einem Export zum bestehenden Zustand hinzu, statt
+  /// ihn zu ersetzen. Spieler werden anhand ihres Namens abgeglichen
+  /// (Duplikate zusammengeführt, damit importierte Tische auf bestehende
+  /// Spieler zeigen), Spielarten anhand ihres Namens, Tische werden immer
+  /// als neue Einträge hinzugefügt (auch wenn inhaltlich identisch), damit
+  /// nichts unbeabsichtigt verloren geht.
+  Future<int> datenImportierenHinzufuegen(String jsonStr) async {
+    final json = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+    // 1) Spieler zusammenführen: Name → vorhandene oder neue ID.
+    final idUmschreibungSpieler = <String, String>{};
+    for (final p in (json['allePlayerinnen'] as List? ?? [])) {
+      try {
+        final importiert = Spieler.fromJson(p as Map<String, dynamic>);
+        final vorhandener = _allePlayerinnen.firstWhere(
+              (s) => s.name.toLowerCase() == importiert.name.toLowerCase(),
+          orElse: () => importiert,
+        );
+        if (!_allePlayerinnen.contains(vorhandener)) {
+          _allePlayerinnen.add(vorhandener);
+        }
+        idUmschreibungSpieler[importiert.id] = vorhandener.id;
+      } catch (e) {
+        debugPrint('Spieler beim Zusammenführen übersprungen: $e');
+      }
+    }
+
+    // 2) Spielarten zusammenführen: Name → vorhandene oder neue ID.
+    final idUmschreibungSpielart = <String, String>{};
+    for (final s in (json['spielarten'] as List? ?? [])) {
+      try {
+        final importiert = Spielart.fromJson(s as Map<String, dynamic>);
+        final vorhandene = _spielarten.firstWhere(
+              (sa) => sa.name.toLowerCase() == importiert.name.toLowerCase(),
+          orElse: () => importiert,
+        );
+        if (!_spielarten.contains(vorhandene)) {
+          _spielarten.add(vorhandene);
+        }
+        idUmschreibungSpielart[importiert.id] = vorhandene.id;
+      } catch (e) {
+        debugPrint('Spielart beim Zusammenführen übersprungen: $e');
+      }
+    }
+
+    // 3) Tische mit umgeschriebenen IDs neu hinzufügen (nie überschreiben,
+    // damit auch inhaltlich gleiche/ähnliche Tische nicht verloren gehen).
+    var importierteTische = 0;
+    for (final t in (json['tische'] as List? ?? [])) {
+      try {
+        final tischJson = Map<String, dynamic>.from(t as Map<String, dynamic>);
+
+        tischJson['id'] = _uuid.v4(); // neue eindeutige ID vergeben
+
+        final urspruenglicheSpielerIds =
+        List<String>.from(tischJson['spielerIds'] as List? ?? []);
+        tischJson['spielerIds'] = urspruenglicheSpielerIds
+            .map((id) => idUmschreibungSpieler[id] ?? id)
+            .toList();
+
+        final urspruenglicheSpielartenIds =
+        List<String>.from(tischJson['spielartenIds'] as List? ?? []);
+        tischJson['spielartenIds'] = urspruenglicheSpielartenIds
+            .map((id) => idUmschreibungSpielart[id] ?? id)
+            .toList();
+
+        final tisch = Tisch.fromJson(
+          tischJson,
+          allePlayerinnen: _allePlayerinnen,
+          alleSpielarten: _spielarten,
+        );
+        _tische.add(tisch);
+        importierteTische += 1;
+      } catch (e) {
+        debugPrint('Tisch beim Import übersprungen: $e');
+      }
+    }
+
+    notifyListeners();
+    return importierteTische;
+  }
+
   /// Wie `datenExportieren()`, aber nur mit den ausgewählten Tischen und
   /// Spielern. Spieler, die an einem ausgewählten Tisch teilnehmen, werden
   /// automatisch mit exportiert (sonst wären die Tisch-Daten beim Import

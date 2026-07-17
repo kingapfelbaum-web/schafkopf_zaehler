@@ -131,40 +131,54 @@ class _EinstellungenScreenState extends State<EinstellungenScreen> {
     if (inhalt == null || inhalt.trim().isEmpty) return;
 
     if (!mounted) return;
-    final bestaetigt = await showDialog<bool>(
+    // null = abgebrochen, true = hinzufügen, false = ersetzen
+    final modus = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Daten importieren?'),
+        title: const Text('Wie importieren?'),
         content: const Text(
-            'Alle aktuellen Spieler, Tische und Einstellungen werden durch die eingefügten Daten ersetzt. Das kann nicht rückgängig gemacht werden.'),
+            '"Hinzufügen" ergänzt die eingefügten Spiele und Spieler zu deinen bestehenden Daten. '
+                '"Ersetzen" löscht vorher alle aktuellen Spieler, Tische und Einstellungen unwiderruflich.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Abbrechen')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.of(ctx).pop(true),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Ersetzen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Hinzufügen'),
           ),
         ],
       ),
     );
-    if (bestaetigt != true) return;
+    if (modus == null) return;
 
     try {
-      await service.datenImportieren(inhalt);
-      if (!mounted) return;
-      // Eingabefelder mit den importierten Standardwerten aktualisieren.
-      final tarif = service.standardTarif;
-      setState(() {
-        _sauspielController.text = tarif.sauspielPreis.toStringAsFixed(2);
-        _soloController.text = tarif.soloPreis.toStringAsFixed(2);
-        _aufpreisController.text = tarif.aufpreis.toStringAsFixed(2);
-        _ausgewaehlteIds = Set.of(service.standardAusgewaehlteSpielartenIds);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Daten erfolgreich importiert')),
-      );
+      if (modus) {
+        final anzahl = await service.datenImportierenHinzufuegen(inhalt);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$anzahl Spiel(e) hinzugefügt')),
+        );
+      } else {
+        await service.datenImportieren(inhalt);
+        if (!mounted) return;
+        // Eingabefelder mit den importierten Standardwerten aktualisieren.
+        final tarif = service.standardTarif;
+        setState(() {
+          _sauspielController.text = tarif.sauspielPreis.toStringAsFixed(2);
+          _soloController.text = tarif.soloPreis.toStringAsFixed(2);
+          _aufpreisController.text = tarif.aufpreis.toStringAsFixed(2);
+          _ausgewaehlteIds = Set.of(service.standardAusgewaehlteSpielartenIds);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Daten erfolgreich ersetzt')),
+        );
+      }
     } on FormatException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
