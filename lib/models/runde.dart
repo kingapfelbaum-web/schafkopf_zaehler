@@ -79,13 +79,11 @@ class Runde {
     required int multiplikator,
     required String id,
     DateTime? zeitpunkt,
+    required double spielwert,
   }) {
-    final grundpreis = tarif.grundpreis(spielart.einzelspieler);
-    final zuschlag =
         tarif.aufpreis * anzahlLaufende + (schneider ? tarif.aufpreis : 0)
         + (schwarz ? tarif.aufpreis : 0)
     ;
-    final spielwert = (grundpreis + zuschlag) * multiplikator;
 
     final punkte = <String, double>{};
 

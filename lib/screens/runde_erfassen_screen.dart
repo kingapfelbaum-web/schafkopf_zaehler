@@ -231,7 +231,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
                   style: Theme.of(context).textTheme.titleMedium),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
-                onPressed: _anzahlLaufende < 8
+                onPressed: _anzahlLaufende < 14
                     ? () => setState(() => _anzahlLaufende++)
                     : null,
               ),
@@ -260,14 +260,14 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
                 onPressed: _multiplikator > 1
-                    ? () => setState(() => _multiplikator--)
+                    ? () => setState(() => _multiplikator=_multiplikator~/2)
                     : null,
               ),
               Text('${_multiplikator}x',
                   style: Theme.of(context).textTheme.titleMedium),
               IconButton(
                 icon: const Icon(Icons.add_circle_outline),
-                onPressed: () => setState(() => _multiplikator++),
+                onPressed: () => setState(() => _multiplikator=_multiplikator*2),
               ),
             ],
           ),
@@ -337,9 +337,10 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
       anzahlLaufende: _anzahlLaufende,
       schneider: _schneider,
       schwarz: _schwarz,
-      gewonnen: _individuell ? true : _gewonnen,
+      gewonnen: _gewonnen,
       unentschieden: _unentschieden,
       multiplikator: _multiplikator,
+      spielwert: _vorschauSpielwert,
     );
 
     if (widget.bearbeiteRunde == null) {
