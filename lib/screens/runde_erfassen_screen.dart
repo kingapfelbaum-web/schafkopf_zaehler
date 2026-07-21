@@ -67,8 +67,7 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
       _multiplikator = bearbeitet.multiplikator;
     } else {
       // Standardmäßig die ersten 4 Spieler der Tisch-Reihenfolge aktiv setzen.
-      _aktiveSpielerIds =
-          widget.tisch.spieler.take(4).map((s) => s.id).toSet();
+      _aktiveSpielerIds = _naechsteAktiveSpieler();
       _spielart = widget.tisch.spielarten.first;
     }
   }
@@ -78,6 +77,37 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
   /// genommen. Ansonsten rückt jeder Sitzplatz gegenüber der letzten Runde
   /// um genau eine Position weiter (reihum, entsprechend der Sitzordnung
   /// des Tisches) – wer zuletzt ausgesetzt hat, spielt so als erstes wieder mit.
+  Set<String> _naechsteAktiveSpieler() {
+    final spieler = widget.tisch.spieler;
+    final n = spieler.length;
+
+    if (widget.tisch.runden.isEmpty || n <= 4) {
+      return spieler.take(4).map((s) => s.id).toSet();
+    }
+
+    final letzteRunde = widget.tisch.runden.last;
+    final letzteAktiveIds = {
+      ...letzteRunde.spielerParteiIds,
+      ...letzteRunde.gegenParteiIds,
+    };
+
+    final letzteAktiveIndizes = letzteAktiveIds
+        .map((id) => spieler.indexWhere((s) => s.id == id))
+        .where((index) => index != -1)
+        .toList();
+
+    // Nur sinnvoll rotierbar, wenn die Vorrunde exakt 4 (noch am Tisch
+    // sitzende) aktive Spieler hatte – sonst auf die ersten 4 zurückfallen.
+    if (letzteAktiveIndizes.length != 4) {
+      return spieler.take(4).map((s) => s.id).toSet();
+    }
+
+    // Jede Sitzposition rückt um genau einen Platz weiter (reihum).
+    final neueIndizes =
+    letzteAktiveIndizes.map((index) => (index + 1) % n).toSet();
+
+    return neueIndizes.map((index) => spieler[index].id).toSet();
+  }
     List<Spieler> get _aktiveSpieler => widget.tisch.spieler
       .where((s) => _aktiveSpielerIds.contains(s.id))
       .toList();
@@ -242,11 +272,12 @@ class _RundeErfassenScreenState extends State<RundeErfassenScreen> {
             value: _schneider,
             onChanged: (v) => setState(() => _schneider = v),
           ),
-          SwitchListTile(
-            title: const Text('Schwarz'),
-            value: _schwarz,
-            onChanged: (v) => setState(() => _schwarz = v),
-          ),
+          if (_schneider)
+            SwitchListTile(
+              title: const Text('Schwarz'),
+              value: _schwarz,
+              onChanged: (v) => setState(() => _schwarz = v),
+            ),
           if (!_unentschieden)
             SwitchListTile(
               title: Text('Spielerpartei gewonnen'),
